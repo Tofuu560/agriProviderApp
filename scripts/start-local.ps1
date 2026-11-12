@@ -20,7 +20,14 @@ function Launch-Service($name,$port,$arguments,$directory){
  $script:records+=@{name=$name;pid=$process.Id;started=$process.StartTime.ToUniversalTime().ToString('o')}
  Write-Host "Started $name ($($process.Id))"
 }
-if(!(Get-NetTCPConnection -State Listen -LocalPort 55432 -ErrorAction SilentlyContinue)){
+$apiEnvPath=Join-Path $projectRoot 'apps\api\.env'
+$databaseUrl=$env:DATABASE_URL
+if(!$databaseUrl -and (Test-Path -LiteralPath $apiEnvPath)){
+ $databaseLine=Get-Content -LiteralPath $apiEnvPath | Where-Object {$_ -match '^DATABASE_URL='} | Select-Object -First 1
+ if($databaseLine){$databaseUrl=($databaseLine -replace '^DATABASE_URL=','').Trim().Trim('"').Trim("'")}
+}
+$usesLocalDatabase=$databaseUrl -and ([uri]$databaseUrl).Host -in @('localhost','127.0.0.1') -and ([uri]$databaseUrl).Port -eq 55432
+if($usesLocalDatabase -and !(Get-NetTCPConnection -State Listen -LocalPort 55432 -ErrorAction SilentlyContinue)){
  & 'C:\Program Files\PostgreSQL\18\bin\pg_ctl.exe' -D (Join-Path $projectRoot '.data\postgres') -l (Join-Path $logDir 'postgres.log') -o '-p 55432 -h 127.0.0.1' start
  if($LASTEXITCODE -ne 0){throw 'PostgreSQL failed to start.'}
 }
