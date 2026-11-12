@@ -13,7 +13,11 @@ Run commands from this directory. Do not launch the old app/app or backend folde
 ## Local setup
 Node 22+, pnpm 11.25.0 and PostgreSQL 18 are used. Install with pnpm install, then copy each .env.example to .env and supply locally generated secrets. No real credentials belong in Git.
 
-The development database is isolated on 127.0.0.1:55432, with databases agriprovider and agriprovider_test. It does not modify the pre-existing Windows PostgreSQL service. Its data is in .data/postgres. It binds only to loopback and uses trust authentication for this local-only development cluster.
+The working development API uses Neon PostgreSQL in Frankfurt on branch `my-new-app`; see [deployment details](docs/deployment.md). The original local database and isolated test databases remain on 127.0.0.1:55432. Their data is in .data/postgres; this loopback-only development cluster uses local trust authentication and does not modify the pre-existing Windows PostgreSQL service. Do not seed or reset the working Neon database.
+
+## Documentation
+
+See the [documentation pack](docs/README.md) for system documentation, the project tracker PDF, the complete API reference, and the importable Postman collection with developer test cases. [AGENTS.md](AGENTS.md) contains project-specific coding-agent instructions.
 
 Commands:
 - pnpm db:generate
@@ -31,7 +35,7 @@ Commands:
 
 Browser tests use `scripts/test-web.mjs`: a separate `agriprovider_web_test` database, API port 4001, preview port 4174, and an isolated web export. The runner seeds and clears only that dedicated test database, then stops its test servers. Override `TEST_WEB_DATABASE_URL` only with a disposable database name ending in `_web_test`. The working development database and preview are preserved.
 
-On this Windows computer, scripts/start-local.ps1 starts the database, API and Expo servers with logs in .data/logs. scripts/stop-local.ps1 stops only processes recorded by that launcher.
+On this Windows computer, scripts/start-local.ps1 starts the API and Expo servers with logs in .data/logs. It starts the local database only when the API is configured for local port 55432. scripts/stop-local.ps1 stops only processes recorded by that launcher.
 
 Web development runs on http://localhost:8082. The API is http://localhost:4000. Expo runs on port 8081. Android and iPhone must share the computer's Wi-Fi network; use the exp:// address printed by Expo. For LAN browser access, include that exact web origin in CORS_ORIGINS. The API address is derived from Expo's host unless EXPO_PUBLIC_API_URL overrides it.
 

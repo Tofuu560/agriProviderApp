@@ -1,0 +1,457 @@
+[
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/approvals",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/approvals/:id",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/assignments",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/assignments",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/audit-log",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/audit-log/export",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/cohorts",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/dashboard",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/data-requests",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/data-requests",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/data-requests/:id/process",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/evidence/:id/download",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/health",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/integrations",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/integrations",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/integrations/:id/revoke",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/outbox/:id/retry",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/pending-accounts",
+    "source": "apps/api/src/onboarding.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/pending-accounts/:id",
+    "source": "apps/api/src/onboarding.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/programmes",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/programmes",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/admin/programmes/:id",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/providers",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/providers",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/admin/providers/:id",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/providers/:id/status",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/settings",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/settings",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/support-access",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/users",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/users",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/users/:id/:action",
+    "source": "apps/api/src/admin.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/assessor/assessments",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/assessor/cohorts",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/assessor/cohorts/:id",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/assessor/cohorts/:id/learner-packs",
+    "source": "apps/api/src/learner-packs.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/assessor/cohorts/:id/learner-packs/:learnerId/submit",
+    "source": "apps/api/src/learner-packs.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/assessor/evidence/:id/download",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/assessor/moderation/:id",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/assessor/slots",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/assessor/slots",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/accept-invite",
+    "source": "apps/api/src/auth.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/forgot-password",
+    "source": "apps/api/src/auth.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "source": "apps/api/src/auth.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/logout",
+    "source": "apps/api/src/auth.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/mfa/complete",
+    "source": "apps/api/src/auth.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/refresh",
+    "source": "apps/api/src/auth.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/reset-password",
+    "source": "apps/api/src/auth.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/signup",
+    "source": "apps/api/src/onboarding.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/token-info",
+    "source": "apps/api/src/auth.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/integrations/certifications",
+    "source": "apps/api/src/app.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/integrations/findings",
+    "source": "apps/api/src/app.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/integrations/programmes",
+    "source": "apps/api/src/app.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learner/cohorts/:id/learner-packs",
+    "source": "apps/api/src/learner-packs.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learner/cohorts/:id/learner-packs/:learnerId/files",
+    "source": "apps/api/src/learner-packs.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learner/courses",
+    "source": "apps/api/src/learning.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learner/evidence/:id/download",
+    "source": "apps/api/src/learner-packs.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "source": "apps/api/src/auth.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/me/mfa/confirm",
+    "source": "apps/api/src/account.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/me/mfa/recovery-codes",
+    "source": "apps/api/src/account.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/me/mfa/setup",
+    "source": "apps/api/src/account.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/me/notifications/:id/read",
+    "source": "apps/api/src/account.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/me/push-token",
+    "source": "apps/api/src/account.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/attendance",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/provider/cohorts",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/cohorts",
+    "source": "apps/api/src/learning.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/provider/cohorts/:id",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/provider/cohorts/:id",
+    "source": "apps/api/src/learning.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/provider/cohorts/:id/learner-packs",
+    "source": "apps/api/src/learner-packs.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/cohorts/:id/learner-packs/:learnerId/files",
+    "source": "apps/api/src/learner-packs.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/cohorts/:id/learner-packs/:learnerId/submit",
+    "source": "apps/api/src/learner-packs.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/cohorts/:id/materials",
+    "source": "apps/api/src/learning.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/cohorts/:id/sessions",
+    "source": "apps/api/src/learning.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/evidence/:id",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/provider/evidence/:id/download",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/learners",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/learners/:id/account",
+    "source": "apps/api/src/learning.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/milestones/:id/submit",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/programmes",
+    "source": "apps/api/src/learning.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/qa/audits",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/qa/cohorts/:id",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/qa/cohorts/:id/learner-packs",
+    "source": "apps/api/src/learner-packs.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/qa/cohorts/:id/learner-packs/:learnerId/submit",
+    "source": "apps/api/src/learner-packs.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/qa/evidence/:id/download",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/qa/findings",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/qa/findings/:id",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/qa/milestones/:id/:action",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/qa/recommend-suspension",
+    "source": "apps/api/src/domain.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/files/:key",
+    "source": "apps/api/src/app.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/healthz",
+    "source": "apps/api/src/app.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/readyz",
+    "source": "apps/api/src/app.ts"
+  }
+]

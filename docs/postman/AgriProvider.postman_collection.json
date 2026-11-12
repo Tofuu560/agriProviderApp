@@ -1,0 +1,1373 @@
+{
+  "info": {
+    "name": "AgriProvider API - Developer test cases",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Read docs/postman/developer-api-test-cases.md. Smoke folder is read-only. Other folders require disposable local fixtures and explicit opt-in. No real credentials are included."
+  },
+  "item": [
+    {
+      "name": "01 Read-only smoke",
+      "item": [
+        {
+          "name": "SM-01 API liveness",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/healthz",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Healthy',()=>pm.expect(pm.response.json().status).to.eql('ok'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "SM-02 Database readiness",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/readyz",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Ready',()=>pm.expect(pm.response.json().status).to.eql('ready'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "SM-03 Missing session rejected",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/me",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.expect(pm.response.code).to.eql(401));",
+                  "pm.test('Error code', () => pm.expect(pm.response.json().code).to.eql('UNAUTHENTICATED'));",
+                  "pm.test('Error envelope', () => { const b=pm.response.json(); pm.expect(b.message).to.be.a('string'); pm.expect(b.fields).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "SM-04 Missing integration key rejected",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/integrations/programmes",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.expect(pm.response.code).to.eql(403));",
+                  "pm.test('Error code', () => pm.expect(pm.response.json().code).to.eql('INVALID_KEY'));",
+                  "pm.test('Error envelope', () => { const b=pm.response.json(); pm.expect(b.message).to.be.a('string'); pm.expect(b.fields).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "SM-05 Unknown endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/not-an-endpoint",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.expect(pm.response.code).to.eql(404));",
+                  "pm.test('Error code', () => pm.expect(pm.response.json().code).to.eql('NOT_FOUND'));",
+                  "pm.test('Error envelope', () => { const b=pm.response.json(); pm.expect(b.message).to.be.a('string'); pm.expect(b.fields).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "SM-06 Provider namespace needs login",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/provider/cohorts",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.expect(pm.response.code).to.eql(401));",
+                  "pm.test('Error code', () => pm.expect(pm.response.json().code).to.eql('UNAUTHENTICATED'));",
+                  "pm.test('Error envelope', () => { const b=pm.response.json(); pm.expect(b.message).to.be.a('string'); pm.expect(b.fields).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 Authenticated reads",
+      "item": [
+        {
+          "name": "AU-01 Login disposable user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "description": "Use an approved disposable provider without MFA. For MFA users add code; a setup challenge is not a successful session.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"transport\": \"native\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('email')){console.warn('Skipped: set email using disposable fixtures.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('password')){console.warn('Skipped: set password using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Session returned',()=>pm.expect(pm.response.json().accessToken).to.be.a('string'));",
+                  "const b=pm.response.json(); if(b.accessToken){pm.environment.set('accessToken',b.accessToken);pm.environment.set('refreshToken',b.refreshToken);}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "AU-02 Current account",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/me",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('accessToken')){console.warn('Skipped: set accessToken using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('User present',()=>pm.expect(pm.response.json().user.id).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "AU-03 provider cohorts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/provider/cohorts",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{providerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('providerToken')){console.warn('Skipped: set providerToken using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('List',()=>pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "AU-04 assessor cohorts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/assessor/cohorts",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{assessorToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('assessorToken')){console.warn('Skipped: set assessorToken using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('List',()=>pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "AU-05 Private learner courses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/learner/courses",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{learnerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('learnerToken')){console.warn('Skipped: set learnerToken using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Own course projection',()=>{const rows=pm.response.json();pm.expect(rows).to.be.an('array');rows.forEach(x=>{pm.expect(x).not.to.have.property('enrolments');pm.expect(x).not.to.have.property('evidence');});});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "AU-06 Provider cannot administer",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/admin/users",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{providerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('providerToken')){console.warn('Skipped: set providerToken using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.expect(pm.response.code).to.eql(403));",
+                  "pm.test('Error code', () => pm.expect(pm.response.json().code).to.eql('FORBIDDEN'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "AU-07 QA audit queue",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/qa/audits",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{qaToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('qaToken')){console.warn('Skipped: set qaToken using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('List',()=>pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "AU-08 Administrator overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/admin/dashboard",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('adminToken')){console.warn('Skipped: set adminToken using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Pending count',()=>pm.expect(pm.response.json().pendingAccounts).to.be.a('number'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 Disposable workflow tests",
+      "item": [
+        {
+          "name": "WF-01 Reject admin self-signup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/signup",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Test Person\",\n  \"email\": \"test-admin@example.invalid\",\n  \"password\": \"Temporary!Pass8923\",\n  \"role\": \"ADMIN\",\n  \"organisation\": \"Test Centre\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.expect(pm.response.code).to.eql(400));",
+                  "pm.test('Error code', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "WF-02 Reject invalid learner identity",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/provider/learners",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{providerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cohortId\": \"{{cohortId}}\",\n  \"fullName\": \"Test Learner\",\n  \"nationalId\": \"123\",\n  \"phone\": \"+27821234567\",\n  \"consent\": true,\n  \"clientOpId\": \"{{$guid}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('providerToken')){console.warn('Skipped: set providerToken using disposable fixtures.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('cohortId')){console.warn('Skipped: set cohortId using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.expect(pm.response.code).to.eql(400));",
+                  "pm.test('Error code', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "WF-03 Create lesson material",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/provider/cohorts/{{cohortId}}/materials",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{providerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman lesson\",\n  \"content\": \"Disposable lesson material for API validation.\",\n  \"url\": \"https://example.org/lesson\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('providerToken')){console.warn('Skipped: set providerToken using disposable fixtures.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('cohortId')){console.warn('Skipped: set cohortId using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Created ID',()=>pm.expect(pm.response.json().id).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "WF-04 Reject unsafe material URL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/provider/cohorts/{{cohortId}}/materials",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{providerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test lesson\",\n  \"content\": \"Disposable validation content.\",\n  \"url\": \"http://example.org/lesson\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('providerToken')){console.warn('Skipped: set providerToken using disposable fixtures.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('cohortId')){console.warn('Skipped: set cohortId using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.expect(pm.response.code).to.eql(400));",
+                  "pm.test('Error code', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "WF-05 QA rejects blank correction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/qa/milestones/{{milestoneId}}/reject",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{qaToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \" \"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('qaToken')){console.warn('Skipped: set qaToken using disposable fixtures.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('milestoneId')){console.warn('Skipped: set milestoneId using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.expect(pm.response.code).to.eql(400));",
+                  "pm.test('Error code', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "WF-06 QA requests correction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/qa/milestones/{{milestoneId}}/reject",
+            "description": "Mutates all evidence review states for the selected milestone. Prepare a disposable unlocked milestone to prove rejection works after unlock.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{qaToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Please re-upload the learner ID.\",\n  \"evidenceIds\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('qaToken')){console.warn('Skipped: set qaToken using disposable fixtures.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('milestoneId')){console.warn('Skipped: set milestoneId using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Correction saved',()=>pm.expect(pm.response.json().ok).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "WF-07 Verify correction persisted",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/qa/cohorts/{{cohortId}}",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{qaToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('qaToken')){console.warn('Skipped: set qaToken using disposable fixtures.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('cohortId')){console.warn('Skipped: set cohortId using disposable fixtures.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('milestoneId')){console.warn('Skipped: set milestoneId using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Milestone reopened',()=>{const m=pm.response.json().milestones.find(x=>x.id===pm.environment.get('milestoneId'));pm.expect(m.state).to.eql('REJECTED');pm.expect(m.unlockedAt).to.eql(null);});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "WF-08 Upload learner ID",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/learner/cohorts/{{cohortId}}/learner-packs/{{learnerId}}/files",
+            "description": "Choose a genuine PDF/JPG/PNG fixture in the file field. Cohort must be editable and learner enrolled. Metadata precedes file.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{learnerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "metadata",
+                  "type": "text",
+                  "value": "{\"type\":\"ID_DOCUMENTS\",\"clientOpId\":\"{{uploadOpId}}\",\"signed\":false}"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('learnerToken')){console.warn('Skipped: set learnerToken using disposable fixtures.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('cohortId')){console.warn('Skipped: set cohortId using disposable fixtures.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('learnerId')){console.warn('Skipped: set learnerId using disposable fixtures.');pm.execution.skipRequest();}",
+                  "pm.environment.set('uploadOpId',pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('File created',()=>pm.expect(pm.response.json().id).to.be.a('string'));",
+                  "pm.environment.set('evidenceId',pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "WF-09 Replay same upload once",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/learner/cohorts/{{cohortId}}/learner-packs/{{learnerId}}/files",
+            "description": "Choose the exact same file bytes as WF-08. Keep uploadOpId unchanged. A new operation ID tests history instead of replay.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{learnerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "metadata",
+                  "type": "text",
+                  "value": "{\"type\":\"ID_DOCUMENTS\",\"clientOpId\":\"{{uploadOpId}}\",\"signed\":false}"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('learnerToken')){console.warn('Skipped: set learnerToken using disposable fixtures.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('cohortId')){console.warn('Skipped: set cohortId using disposable fixtures.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('learnerId')){console.warn('Skipped: set learnerId using disposable fixtures.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('uploadOpId')){console.warn('Skipped: set uploadOpId using disposable fixtures.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('evidenceId')){console.warn('Skipped: set evidenceId using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Same evidence ID',()=>pm.expect(pm.response.json().id).to.eql(pm.environment.get('evidenceId')));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "WF-10 Other learner cannot download",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/learner/evidence/{{evidenceId}}/download",
+            "description": "otherLearnerToken must belong to a different learner from the uploader.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{otherLearnerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('otherLearnerToken')){console.warn('Skipped: set otherLearnerToken using disposable fixtures.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('evidenceId')){console.warn('Skipped: set evidenceId using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.expect(pm.response.code).to.eql(404));",
+                  "pm.test('Error code', () => pm.expect(pm.response.json().code).to.eql('NOT_FOUND'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "WF-11 Provider submits individual pack",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/provider/cohorts/{{cohortId}}/learner-packs/{{learnerId}}/submit",
+            "description": "Before running, provide all four initial documents for this learner; WF-08 alone is insufficient.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{providerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"SUBMIT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('providerToken')){console.warn('Skipped: set providerToken using disposable fixtures.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('cohortId')){console.warn('Skipped: set cohortId using disposable fixtures.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('learnerId')){console.warn('Skipped: set learnerId using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Assessor handoff',()=>pm.expect(pm.response.json().status).to.eql('ASSESSOR_REVIEW'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "WF-12 Assessor forwards complete pack",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/assessor/cohorts/{{cohortId}}/learner-packs/{{learnerId}}/submit",
+            "description": "Requires assigned assessor, submitted state, assessment report and all required evidence including signed certificate for PASS.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{assessorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"APPROVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('assessorToken')){console.warn('Skipped: set assessorToken using disposable fixtures.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('cohortId')){console.warn('Skipped: set cohortId using disposable fixtures.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('learnerId')){console.warn('Skipped: set learnerId using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('QA handoff',()=>pm.expect(pm.response.json().status).to.eql('QA_REVIEW'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "WF-13 QA verifies individual pack",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/qa/cohorts/{{cohortId}}/learner-packs/{{learnerId}}/submit",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{qaToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"APPROVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('qaToken')){console.warn('Skipped: set qaToken using disposable fixtures.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('cohortId')){console.warn('Skipped: set cohortId using disposable fixtures.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('learnerId')){console.warn('Skipped: set learnerId using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Pack verified',()=>pm.expect(pm.response.json().status).to.eql('VERIFIED'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "WF-14 Refresh session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/refresh",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\",\n  \"transport\": \"native\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('refreshToken')){console.warn('Skipped: set refreshToken using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Rotated session',()=>pm.expect(pm.response.json().accessToken).to.be.a('string'));",
+                  "const b=pm.response.json();if(b.accessToken){pm.environment.set('accessToken',b.accessToken);pm.environment.set('refreshToken',b.refreshToken);}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "WF-15 Logout session",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/auth/logout",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('accessToken')){console.warn('Skipped: set accessToken using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Signed out',()=>pm.expect(pm.response.json().ok).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "WF-16 Logged-out token rejected",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/me",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('allowTestExecution')!=='true' || pm.variables.replaceIn('{{baseUrl}}')!=='http://localhost:4001'){console.warn('Skipped: enable disposable test execution at port 4001.');pm.execution.skipRequest();}",
+                  "if(!pm.environment.get('accessToken')){console.warn('Skipped: set accessToken using disposable fixtures.');pm.execution.skipRequest();}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.expect(pm.response.code).to.eql(401));",
+                  "pm.test('Error code', () => pm.expect(pm.response.json().code).to.eql('SESSION_EXPIRED'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    }
+  ]
+}

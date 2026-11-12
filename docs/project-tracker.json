@@ -1,0 +1,152 @@
+{
+  "date": "2026-11-12",
+  "timezone": "Africa/Johannesburg",
+  "baseline": "e1144af",
+  "branch": "my-new-app",
+  "items": [
+    {
+      "id": "AP-01",
+      "workstream": "Five role portals",
+      "status": "Implemented",
+      "owner": "Development",
+      "evidence": "Role routes and permissions; historical API/browser checks",
+      "next": "Maintain role isolation on changes"
+    },
+    {
+      "id": "AP-02",
+      "workstream": "Staff approval and MFA",
+      "status": "Implemented",
+      "owner": "Development / Admin",
+      "evidence": "Pending applications, setup QR and recovery flows tested",
+      "next": "Configure real account delivery"
+    },
+    {
+      "id": "AP-03",
+      "workstream": "Provider programme and cohort management",
+      "status": "Implemented",
+      "owner": "Provider / Development",
+      "evidence": "Provider creation/closure; admin read-only",
+      "next": "User acceptance on final training data"
+    },
+    {
+      "id": "AP-04",
+      "workstream": "Learner accounts and documents",
+      "status": "Implemented",
+      "owner": "Development",
+      "evidence": "Private ID/consent uploads; two-recipient account emails",
+      "next": "Validate actual document templates"
+    },
+    {
+      "id": "AP-05",
+      "workstream": "Attendance and offline queue",
+      "status": "Locally validated",
+      "owner": "Development / QA",
+      "evidence": "Idempotent sync and browser offline journeys",
+      "next": "Physical phone and background tests"
+    },
+    {
+      "id": "AP-06",
+      "workstream": "Individual evidence and review",
+      "status": "Implemented",
+      "owner": "Assessor / QA",
+      "evidence": "Separate reports/packs, history and correction flow",
+      "next": "Business sign-off with real sample packs"
+    },
+    {
+      "id": "AP-07",
+      "workstream": "Certification and milestones",
+      "status": "Implemented",
+      "owner": "QA",
+      "evidence": "Conditions, independent moderation, status-only unlock",
+      "next": "No public QR verification or real payments"
+    },
+    {
+      "id": "AP-08",
+      "workstream": "South African localisation",
+      "status": "Implemented",
+      "owner": "Development",
+      "evidence": "SAST, calendar controls, province/country/phone checks",
+      "next": "Confirm on target device locales"
+    },
+    {
+      "id": "AP-09",
+      "workstream": "Neon Frankfurt database",
+      "status": "Verified",
+      "owner": "Operations",
+      "evidence": "30 application tables matched; 11 accounts/4 learners/0 evidence at cutover",
+      "next": "Maintain protected backups and branch isolation"
+    },
+    {
+      "id": "AP-10",
+      "workstream": "Local services and exports",
+      "status": "Verified",
+      "owner": "Development",
+      "evidence": "Readiness/web 200; web and native bundle exports recorded",
+      "next": "Exports are not signed installs"
+    },
+    {
+      "id": "AP-11",
+      "workstream": "Documentation pack",
+      "status": "Prepared",
+      "owner": "Development",
+      "evidence": "System/API guide, route inventory, Postman and tracker",
+      "next": "Keep contracts and verification record current"
+    },
+    {
+      "id": "AP-12",
+      "workstream": "Public API/web deployment",
+      "status": "Pending",
+      "owner": "Operations",
+      "evidence": "Local processes only; Render production not configured",
+      "next": "Provision hosting, domains, TLS and secrets"
+    },
+    {
+      "id": "AP-13",
+      "workstream": "Real email and private files",
+      "status": "Pending",
+      "owner": "Operations",
+      "evidence": "Current mail/files use local development adapters",
+      "next": "Configure SMTP and private S3-compatible storage"
+    },
+    {
+      "id": "AP-14",
+      "workstream": "Production malware scanning",
+      "status": "Pending",
+      "owner": "Operations / Security",
+      "evidence": "Development checks available; production requires scanner",
+      "next": "Configure scanner and validate fail-closed behavior"
+    },
+    {
+      "id": "AP-15",
+      "workstream": "Signed Android/iOS releases",
+      "status": "Pending",
+      "owner": "Mobile release owner",
+      "evidence": "Hermes bundle exports passed",
+      "next": "Configure EAS signing and distribution"
+    },
+    {
+      "id": "AP-16",
+      "workstream": "Physical phone acceptance",
+      "status": "Pending",
+      "owner": "QA / Product owner",
+      "evidence": "Browser phone viewport tests only",
+      "next": "Test Android/iPhone camera, sync, permissions and push"
+    },
+    {
+      "id": "AP-17",
+      "workstream": "External integration delivery",
+      "status": "Pending",
+      "owner": "Integration owner",
+      "evidence": "Scoped endpoints and durable outbox implemented",
+      "next": "Verify Passport receiver and push delivery end to end"
+    },
+    {
+      "id": "AP-18",
+      "workstream": "Recovery and release approval",
+      "status": "Pending",
+      "owner": "Operations / Product owner",
+      "evidence": "Local backup preserved and migration checked",
+      "next": "Rehearse production restore; approve release criteria"
+    }
+  ]
+}

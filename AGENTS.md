@@ -1,4 +1,32 @@
-This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
+# AgriProvider agent instructions
+
+## Scope and source of truth
+
+Work from this repository root. The active application is `apps/mobile`, the API is `apps/api`, and shared validation is `packages/shared`. The `app` and `backend` directories are preserved prototypes; do not implement new features there. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
+
+Read `docs/system-documentation.md`, `docs/api-documentation.md`, `docs/deployment.md` and `docs/testing.md` before changing the relevant subsystem. The route handlers, shared Zod schemas and Prisma migrations are the implementation source of truth. Update documentation when behavior changes.
+
+## Domain invariants
+
+- Enforce authorization on the server: providers own their cohorts, assessors require assignments, and learners see only their own records. Admin cohort access is read-only; providers create, close and reopen cohorts.
+- Keep individual learner packs separate through provider, assessor and QA review. Uploads append new evidence records and objects. Never silently overwrite upload history.
+- QA correction requests require a nonblank reason and can reopen an unlocked milestone. Certification requires passing results, evidence, independent moderation, verified conditions and resolved findings. Milestones represent status only; never introduce real payments without a new requirement.
+- Keep dates as explicit UTC instants in API requests; interpret/display user-facing dates and times in Africa/Johannesburg (SAST). Use calendar controls and country/province/phone validation.
+- Preserve immutable audit history, encrypted identity/phone/MFA data, password hashes, token rotation and required administrator MFA. Account creation sends setup information to the new address and confirmation to the creator; never email passwords.
+
+## Database and operations
+
+The working app uses the Neon Frankfurt development branch `my-new-app`; see `docs/deployment.md`. Use pooled runtime connections and direct migration connections. Preserve the existing Prisma stack. Never print or commit environment values, database dumps, file uploads, mail links or secrets under `.data`.
+
+Use additive reviewed migrations; back up before a data migration. Do not run seeds, resets or destructive tests against the working Neon branch or production. API tests use a disposable database ending in `_test`; browser tests use a separate `_web_test` database and ports 4001/4174. Preserve encryption and token keys when copying existing accounts.
+
+Use `scripts/start-local.ps1` and `scripts/stop-local.ps1` for managed Windows services. Do not kill unrelated processes or take over occupied ports. External production deployment, email delivery, signed phone builds and physical-device acceptance are distinct from local validation.
+
+## Required verification and handoff
+
+Run `pnpm typecheck` and `pnpm lint`. Run focused API/browser tests for changed behavior using isolated fixtures. For documentation changes, validate route coverage, JSON imports and PDF rendering instead of replaying destructive workflow tests. Record exactly what ran; distinguish historical results from new checks. Use `node_modules/tsx/dist/cli.mjs scripts/document-routes.mts` with Node to refresh the route inventory without executing handlers.
+
+Keep generated Postman environments free of credentials. Run mutations only against disposable test fixtures. Keep source and generated project-tracker PDF consistent. Summarize changed behavior, validation and remaining deployment work in the handoff. Do not claim production readiness from static or browser-viewport tests.
 
 ## Expo has changed — do not trust your training data
 
