@@ -1,0 +1,18 @@
+# Decisions and integration boundaries
+- The user approved preserving/restructuring the prototype, local services, capacity blocking and a second assessor.
+- The active monorepo is under the existing app repository. Original prototype directories and Git history are retained.
+- SDK 58 is retained because it was already installed; matching Expo documentation and SDK-compatible installation were used.
+- Fastify and StyleSheet were chosen. Prisma 6.19 is pinned to retain the requested schema-level directUrl support; upgrades require migration review.
+- Local PostgreSQL replaces Neon only for development. Dev and test databases are separate. Production uses PostgreSQL-compatible Neon URLs.
+- Capacity is enforced even though the Figma sample shows registration open at full capacity.
+- Demo capacity is six with five learners for a manageable end-to-end journey. Production cohort capacity is configurable.
+- Expo Router 58's installed href:null implementation redirects hidden tab routes. Detail routes instead hide their tab button while remaining reachable. Admin uses a sidebar/drawer.
+- Evidence completeness is calculated from explicit coverage manifests, signatures and stored domain records. Human assessors/QA must inspect the file contents; the app does not claim OCR or cryptographic signature verification.
+- Development scanning checks known test-virus content and file magic. Production calls the configured ClamAV-compatible scanner and fails closed on scanner errors.
+- Current evidence transfer is authenticated multipart with durable retry of the file. Downloads use short-lived signed URLs. Transfer resumes by retrying an entire file, not a partially uploaded byte range. Direct signed multipart S3 upload/resume is a remaining production enhancement.
+- Local SMTP replacement writes messages to .data/mail. No real email was sent by local tests.
+- In-app notifications persist independently of push delivery. Push requires user permission and external Expo credentials.
+- Passport is a development integration stub unless PASSPORT_URL/PASSPORT_KEY are configured. Employer and Field Officer endpoints use scoped API keys.
+- Local background sync is best-effort; OS scheduling and native push require a device build and physical-device validation.
+- Administrative access/correction data requests require a human compliance review; anonymisation is blocked by retention and active review. Support grants are time-limited and read-only.
+- Production service provisioning, Neon CI branch credentials, app signing, real device testing and live deployment are external setup steps, not completed merely by a successful local build.

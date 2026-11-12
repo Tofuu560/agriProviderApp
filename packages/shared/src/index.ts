@@ -1,0 +1,31 @@
+import { z } from 'zod';
+export const roles = ['PROVIDER','ASSESSOR','QA_OFFICER','ADMIN'] as const;
+export type Role = typeof roles[number];
+export const permissionMatrix = { provider:['PROVIDER'],assessor:['ASSESSOR'],qa:['QA_OFFICER'],admin:['ADMIN'] } as const;
+export const landing: Record<Role,string> = {PROVIDER:'/(provider)/home',ASSESSOR:'/(assessor)/home',QA_OFFICER:'/(qa)/audits',ADMIN:'/(admin)/dashboard'};
+export const evidenceTypes = ['ENROLMENT_LIST','ID_DOCUMENTS','CONSENT_FORMS','ATTENDANCE_LOG','CERTIFICATES','ASSESSOR_REPORT'] as const;
+export const evidenceLabels: Record<string,string> = {ENROLMENT_LIST:'Enrolment list',ID_DOCUMENTS:'ID documents',CONSENT_FORMS:'Consent forms',ATTENDANCE_LOG:'Attendance log',CERTIFICATES:'Certificates',ASSESSOR_REPORT:'Assessor report'};
+export function validSaId(id:string, now = new Date()):boolean {
+ if(!/^\d{13}$/.test(id)|| !['0','1'].includes(id[10])) return false;
+ const yy=Number(id.slice(0,2)), month=Number(id.slice(2,4)), day=Number(id.slice(4,6));
+ const year = yy > now.getFullYear()%100 ? 1900+yy : 2000+yy;
+ const d=new Date(Date.UTC(year,month-1,day));
+ if(d.getUTCFullYear()!==year||d.getUTCMonth()!==month-1||d.getUTCDate()!==day||d.getTime()>now.getTime()) return false;
+ let sum=0; for(let i=0;i<13;i++){let n=Number(id[i]);if(i%2===1){n*=2;if(n>9)n-=9;}sum+=n;}
+ return sum%10===0;
+}
+export const saIdSchema=z.string().regex(/^\d{13}$/,'Enter exactly 13 digits without letters, spaces or dashes.').refine(validSaId,'Enter a valid South African ID number (date, citizenship and checksum).');
+export const nameSchema=z.string().trim().min(2).max(100).regex(/^[\p{L} '\-]+$/u,'Use letters, spaces, hyphens and apostrophes only.');
+export const learnerSchema=z.object({cohortId:z.string().uuid(),fullName:nameSchema,nationalId:saIdSchema,phone:z.string().regex(/^\+27[1-9]\d{8}$/,'Use +27 followed by 9 digits, for example +27821234567.'),consent:z.literal(true,{errorMap:()=>({message:'Learner consent is required.'})}),clientOpId:z.string().uuid()}).strict();
+export const passwordSchema=z.string().min(12,'Use at least 12 characters.').max(128).refine(v=>!['password12345','password123456','qwerty12345678','agriprovider123'].includes(v.toLowerCase()),'Choose a less common password.');
+export function passwordForUser(password:string,email:string,name:string){passwordSchema.parse(password);const lower=password.toLowerCase();return ![email.split('@')[0],...name.toLowerCase().split(' ')].filter(x=>x.length>=3).some(x=>lower.includes(x));}
+export const loginSchema=z.object({email:z.string().email().transform(x=>x.toLowerCase().trim()),password:z.string().min(1).max(128),code:z.string().optional(),transport:z.enum(['web','native']).default('web')}).strict();
+export const attendanceSchema=z.object({sessionId:z.string().uuid(),records:z.array(z.object({learnerId:z.string().uuid(),status:z.enum(['PRESENT','ABSENT','LATE'])}).strict()).min(1),markRemainingAbsent:z.boolean().default(false),clientOpId:z.string().uuid()}).strict();
+export const assessmentSchema=z.object({cohortId:z.string().uuid(),grades:z.array(z.object({learnerId:z.string().uuid(),outcome:z.enum(['PASS','FAIL'])}).strict()).min(1),clientOpId:z.string().uuid()}).strict();
+export const reasonSchema=z.string().trim().min(10,'Please give a reason of at least 10 characters.').max(2000);
+export const providerSchema=z.object({name:z.string().trim().min(2),accreditationNumber:z.string().min(3),validFrom:z.string().datetime(),validTo:z.string().datetime(),province:z.string().min(2),contact:z.string().email()}).strict().refine(x=>x.validFrom<x.validTo,'Expiry must be after the start date.');
+export const programmeSchema=z.object({name:z.string().min(2),level:z.string().min(1),requiredSessions:z.number().int().min(1).max(365),attendanceThreshold:z.number().min(1).max(100),assessmentType:z.string().min(2)}).strict();
+export const cohortSchema=z.object({providerId:z.string().uuid(),programmeId:z.string().uuid(),code:z.string().min(2),capacity:z.number().int().min(1).max(1000),startDate:z.string().datetime(),endDate:z.string().datetime(),sessionDates:z.array(z.string().datetime()).min(1)}).strict().refine(x=>x.startDate<x.endDate&&x.sessionDates.every(d=>d>=x.startDate&&d<=x.endDate),'Session dates must be inside the cohort dates.');
+export const inviteSchema=z.object({email:z.string().email().transform(x=>x.toLowerCase()),fullName:nameSchema,role:z.enum(roles),providerId:z.string().uuid().optional(),cohortIds:z.array(z.string().uuid()).optional(),noAssignmentsYet:z.boolean().optional()}).strict().superRefine((x,c)=>{if(x.role==='PROVIDER'&&!x.providerId)c.addIssue({code:'custom',path:['providerId'],message:'Choose a provider.'});if(x.role==='ASSESSOR'&&!x.cohortIds?.length&&!x.noAssignmentsYet)c.addIssue({code:'custom',path:['cohortIds'],message:'Assign a cohort or explicitly choose no assignments yet.'});});
+export const settingsSchema=z.object({inviteHours:z.number().int().min(1).max(168),idleMinutes:z.number().int().min(5).max(120),lockoutAttempts:z.number().int().min(3).max(10),maxFileMb:z.number().int().min(1).max(20),qaMfa:z.boolean(),retentionDays:z.number().int().min(365),outboxRetries:z.number().int().min(1).max(20)}).strict();
+export const defaultSettings={inviteHours:72,idleMinutes:30,lockoutAttempts:5,maxFileMb:10,qaMfa:false,retentionDays:1825,outboxRetries:8};

@@ -1,0 +1,1 @@
+export {DataRequests as default} from '../../features/admin/screens';

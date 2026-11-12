@@ -1,0 +1,1 @@
+export {Cohorts as default} from '../../features/admin/screens';

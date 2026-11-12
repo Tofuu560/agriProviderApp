@@ -1,0 +1,15 @@
+import React,{useState} from 'react';
+import {Slot,Redirect,router,usePathname} from 'expo-router';
+import {View,Text,Pressable,ScrollView,Modal,useWindowDimensions} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import Feather from '@expo/vector-icons/Feather';
+import {landing} from '@agri/shared';
+import {useSession} from '../../lib/session';
+import {theme as t} from '../../lib/theme';
+const pages=[['dashboard','Dashboard'],['users','Users'],['providers','Providers'],['programmes','Programmes'],['cohorts','Cohorts'],['assignments','Assignments'],['approvals','Approvals'],['integrations','Integrations'],['audit-log','Audit log'],['settings','Settings'],['data-requests','Data requests'],['health','System health'],['security','Account & notifications']];
+export default function Layout(){
+ const {user,ready,logout}=useSession(),{width}=useWindowDimensions(),[open,setOpen]=useState(false),path=usePathname();
+ if(!ready)return null;if(!user)return <Redirect href="/(auth)/login"/>;if(user.role!=='ADMIN')return <Redirect href={landing[user.role] as any}/>;
+ const menu=<ScrollView style={{width:240,backgroundColor:t.card}} contentContainerStyle={{padding:14,gap:4}}><Text style={{fontSize:22,fontWeight:'700',color:t.primary,padding:12}}>AgriProvider</Text>{pages.map(([name,label])=><Pressable key={name} accessibilityRole="button" accessibilityState={{selected:path.endsWith('/'+name)}} onPress={()=>{router.push(('/(admin)/'+name) as any);setOpen(false);}} style={{padding:14,minHeight:48,borderRadius:8,backgroundColor:path.endsWith('/'+name)?t.primarySoft:t.card}}><Text style={{color:t.text,fontSize:15}}>{label}</Text></Pressable>)}<Pressable accessibilityRole="button" onPress={()=>void logout()} style={{padding:14,minHeight:48}}><Text style={{color:t.red}}>Sign out</Text></Pressable></ScrollView>;
+ return <SafeAreaView style={{flex:1,backgroundColor:t.background}}><View style={{flex:1,flexDirection:'row'}}>{width>900&&menu}<View style={{flex:1}}>{width<=900&&<View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingHorizontal:18,paddingVertical:8}}><Text style={{fontSize:19,fontWeight:'700',color:t.primary}}>AgriProvider</Text><Pressable accessibilityRole="button" accessibilityLabel="Open administration menu" onPress={()=>setOpen(true)} style={{padding:12}}><Feather name="menu" size={24} color={t.primary}/></Pressable></View>}<Slot/></View></View><Modal visible={open} transparent animationType="slide" onRequestClose={()=>setOpen(false)}><SafeAreaView style={{flex:1,flexDirection:'row',backgroundColor:'#00000066'}}>{menu}<Pressable accessibilityRole="button" accessibilityLabel="Close administration menu" onPress={()=>setOpen(false)} style={{flex:1}}/></SafeAreaView></Modal></SafeAreaView>;
+}

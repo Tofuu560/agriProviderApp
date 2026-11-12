@@ -1,0 +1,372 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id             String         @id @default(uuid()) @db.Uuid
+  email          String         @unique
+  fullName       String
+  role           String
+  status         String         @default("PENDING")
+  passwordHash   String?
+  providerId     String?        @db.Uuid
+  provider       Provider?      @relation(fields: [providerId], references: [id])
+  mfaSecret      String?
+  mfaEnabled     Boolean        @default(false)
+  recoveryHashes String[]       @default([])
+  pushTokens     String[]       @default([])
+  failures       Int            @default(0)
+  lockedUntil    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  assignments    Assignment[]
+  sessions       AuthSession[]
+  tokens         OneTimeToken[]
+  notifications  Notification[]
+}
+
+model AuthSession {
+  id                    String    @id @default(uuid()) @db.Uuid
+  userId                String    @db.Uuid
+  user                  User      @relation(fields: [userId], references: [id])
+  accessHash            String    @unique
+  refreshHash           String    @unique
+  familyId              String
+  previousRefreshHashes String[]  @default([])
+  accessExpiresAt       DateTime
+  expiresAt             DateTime
+  lastSeen              DateTime  @default(now())
+  revokedAt             DateTime?
+  createdAt             DateTime  @default(now())
+}
+
+model OneTimeToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id])
+  hash      String    @unique
+  kind      String
+  expiresAt DateTime
+  usedAt    DateTime?
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model Provider {
+  id                  String   @id @default(uuid()) @db.Uuid
+  name                String
+  accreditationNumber String   @unique
+  validFrom           DateTime
+  validTo             DateTime
+  province            String
+  contact             String
+  status              String   @default("ACCREDITED")
+  reason              String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  users               User[]
+  cohorts             Cohort[]
+}
+
+model Programme {
+  id                  String   @id @default(uuid()) @db.Uuid
+  name                String
+  level               String
+  requiredSessions    Int
+  attendanceThreshold Float
+  assessmentType      String
+  version             Int      @default(1)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  cohorts             Cohort[]
+}
+
+model Cohort {
+  id          String             @id @default(uuid()) @db.Uuid
+  providerId  String             @db.Uuid
+  provider    Provider           @relation(fields: [providerId], references: [id])
+  programmeId String             @db.Uuid
+  programme   Programme          @relation(fields: [programmeId], references: [id])
+  code        String
+  capacity    Int
+  startDate   DateTime
+  endDate     DateTime
+  status      String             @default("ACTIVE")
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  enrolments  Enrolment[]
+  sessions    TrainingSession[]
+  assignments Assignment[]
+  milestones  Milestone[]
+  assessments Assessment[]
+  moderation  ModerationReview[]
+  slots       ModerationSlot[]
+
+  @@unique([providerId, programmeId, code])
+}
+
+model Learner {
+  id                  String       @id @default(uuid()) @db.Uuid
+  fullName            String
+  nationalIdEncrypted String
+  nationalIdHash      String
+  idLastFour          String
+  phoneEncrypted      String
+  consentAt           DateTime
+  consentVersion      String
+  anonymisedAt        DateTime?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  enrolments          Enrolment[]
+  attendance          Attendance[]
+  assessments         Assessment[]
+}
+
+model Enrolment {
+  id             String   @id @default(uuid()) @db.Uuid
+  cohortId       String   @db.Uuid
+  cohort         Cohort   @relation(fields: [cohortId], references: [id])
+  learnerId      String   @db.Uuid
+  learner        Learner  @relation(fields: [learnerId], references: [id])
+  programmeId    String   @db.Uuid
+  nationalIdHash String
+  createdAt      DateTime @default(now())
+
+  @@unique([programmeId, nationalIdHash])
+  @@unique([cohortId, learnerId])
+}
+
+model TrainingSession {
+  id         String       @id @default(uuid()) @db.Uuid
+  cohortId   String       @db.Uuid
+  cohort     Cohort       @relation(fields: [cohortId], references: [id])
+  startsAt   DateTime
+  attendance Attendance[]
+
+  @@unique([cohortId, startsAt])
+}
+
+model Attendance {
+  id         String          @id @default(uuid()) @db.Uuid
+  sessionId  String          @db.Uuid
+  session    TrainingSession @relation(fields: [sessionId], references: [id])
+  learnerId  String          @db.Uuid
+  learner    Learner         @relation(fields: [learnerId], references: [id])
+  status     String
+  recordedBy String          @db.Uuid
+  updatedAt  DateTime        @updatedAt
+
+  @@unique([sessionId, learnerId])
+}
+
+model Assignment {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id])
+  cohortId  String   @db.Uuid
+  cohort    Cohort   @relation(fields: [cohortId], references: [id])
+  active    Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, cohortId])
+}
+
+model Assessment {
+  id         String   @id @default(uuid()) @db.Uuid
+  cohortId   String   @db.Uuid
+  cohort     Cohort   @relation(fields: [cohortId], references: [id])
+  learnerId  String   @db.Uuid
+  learner    Learner  @relation(fields: [learnerId], references: [id])
+  assessorId String   @db.Uuid
+  outcome    String
+  createdAt  DateTime @default(now())
+
+  @@unique([cohortId, learnerId])
+}
+
+model Milestone {
+  id                     String               @id @default(uuid()) @db.Uuid
+  cohortId               String               @db.Uuid
+  cohort                 Cohort               @relation(fields: [cohortId], references: [id])
+  label                  String               @default("Milestone 01")
+  state                  String               @default("LOCKED")
+  previousState          String?
+  enrolmentCondition     String               @default("PENDING")
+  attendanceCondition    String               @default("PENDING")
+  certificationCondition String               @default("PENDING")
+  config                 Json
+  rejectionReason        String?
+  submittedAt            DateTime?
+  unlockedAt             DateTime?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  evidence               Evidence[]
+  findings               Finding[]
+  certifications         CertificationEvent[]
+}
+
+model Evidence {
+  id          String    @id @default(uuid()) @db.Uuid
+  milestoneId String    @db.Uuid
+  milestone   Milestone @relation(fields: [milestoneId], references: [id])
+  type        String
+  storageKey  String
+  fileName    String
+  mime        String
+  size        Int
+  checksum    String
+  ownerId     String    @db.Uuid
+  learnerIds  String[]  @default([])
+  sessionIds  String[]  @default([])
+  signed      Boolean   @default(false)
+  signerName  String?
+  signedAt    DateTime?
+  scanStatus  String    @default("PENDING")
+  status      String    @default("UPLOADED")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([milestoneId, type])
+}
+
+model ModerationReview {
+  id          String   @id @default(uuid()) @db.Uuid
+  cohortId    String   @db.Uuid
+  cohort      Cohort   @relation(fields: [cohortId], references: [id])
+  moderatorId String   @db.Uuid
+  status      String
+  reason      String?
+  createdAt   DateTime @default(now())
+}
+
+model ModerationSlot {
+  id         String   @id @default(uuid()) @db.Uuid
+  cohortId   String   @db.Uuid
+  cohort     Cohort   @relation(fields: [cohortId], references: [id])
+  assessorId String   @db.Uuid
+  startsAt   DateTime
+  endsAt     DateTime
+  type       String
+}
+
+model Finding {
+  id          String     @id @default(uuid()) @db.Uuid
+  providerId  String     @db.Uuid
+  milestoneId String?    @db.Uuid
+  milestone   Milestone? @relation(fields: [milestoneId], references: [id])
+  officerName String
+  region      String
+  description String
+  status      String     @default("FOLLOW-UP")
+  evidenceIds String[]   @default([])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String
+  role       String
+  action     String
+  entityId   String
+  details    Json
+  ip         String?
+  clientOpId String?
+  createdAt  DateTime @default(now())
+}
+
+model SyncOperation {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  clientOpId  String   @db.Uuid
+  requestHash String
+  result      Json
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, clientOpId])
+}
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id])
+  message   String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model OutboxEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  type          String
+  payload       Json
+  status        String   @default("PENDING")
+  attempts      Int      @default(0)
+  nextAttemptAt DateTime @default(now())
+  lastError     String?
+  createdAt     DateTime @default(now())
+}
+
+model CertificationEvent {
+  id          String    @id @default(uuid()) @db.Uuid
+  milestoneId String    @unique @db.Uuid
+  milestone   Milestone @relation(fields: [milestoneId], references: [id])
+  payload     Json
+  createdAt   DateTime  @default(now())
+}
+
+model ApprovalRequest {
+  id          String   @id @default(uuid()) @db.Uuid
+  requesterId String   @db.Uuid
+  approverId  String?  @db.Uuid
+  action      String
+  payload     Json
+  status      String   @default("PENDING")
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+}
+
+model SystemSetting {
+  id        String   @id @default(uuid()) @db.Uuid
+  version   Int      @unique
+  value     Json
+  createdAt DateTime @default(now())
+}
+
+model ApiKey {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String
+  hash      String    @unique
+  scopes    String[]
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model DataRequest {
+  id        String   @id @default(uuid()) @db.Uuid
+  learnerId String   @db.Uuid
+  type      String
+  reason    String
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+}
+
+model SupportGrant {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  entityId  String   @db.Uuid
+  reason    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model JobHeartbeat {
+  name    String   @id
+  lastRun DateTime @default(now())
+}

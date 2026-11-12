@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "AgriProvider",
+    "slug": "agriprovider",
+    "scheme": "agriprovider",
+    "version": "1.0.0",
+    "orientation": "default",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "za.co.agriprovider.app"
+    },
+    "android": {
+      "package": "za.co.agriprovider.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "name": "AgriProvider",
+      "shortName": "AgriProvider",
+      "themeColor": "#166534",
+      "backgroundColor": "#F7F8F5"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-sqlite",
+      "expo-document-picker",
+      "expo-font",
+      "expo-background-task",
+      "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow AgriProvider to photograph training evidence.",
+          "photosPermission": "Allow AgriProvider to attach training evidence."
+        }
+      ],
+      "expo-status-bar"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}

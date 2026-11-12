@@ -1,0 +1,1 @@
+import { Redirect } from 'expo-router';import { useSession } from '../lib/session';import { landing } from '@agri/shared';export default function Index(){const {user,ready}=useSession();if(!ready)return null;return <Redirect href={(user?landing[user.role]:'/(auth)/login') as any}/>;}

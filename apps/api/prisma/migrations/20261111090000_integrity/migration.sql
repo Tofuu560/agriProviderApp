@@ -1,0 +1,10 @@
+CREATE OR REPLACE FUNCTION prevent_audit_mutation() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'Audit records are append-only'; END; $$ LANGUAGE plpgsql;
+CREATE TRIGGER audit_append_only BEFORE UPDATE OR DELETE ON "AuditLog" FOR EACH ROW EXECUTE FUNCTION prevent_audit_mutation();
+CREATE UNIQUE INDEX users_email_case_insensitive ON "User" (lower(email));
+ALTER TABLE "Cohort" ADD CONSTRAINT cohort_capacity_positive CHECK (capacity > 0);
+ALTER TABLE "Cohort" ADD CONSTRAINT cohort_dates_valid CHECK ("startDate" < "endDate");
+ALTER TABLE "Attendance" ADD CONSTRAINT attendance_status_valid CHECK (status IN ('PRESENT','ABSENT','LATE'));
+ALTER TABLE "Assessment" ADD CONSTRAINT assessment_outcome_valid CHECK (outcome IN ('PASS','FAIL'));
+ALTER TABLE "User" ADD CONSTRAINT user_role_valid CHECK (role IN ('ADMIN','PROVIDER','ASSESSOR','QA_OFFICER'));
+ALTER TABLE "User" ADD CONSTRAINT provider_scope_required CHECK (role <> 'PROVIDER' OR "providerId" IS NOT NULL);
+ALTER TABLE "Milestone" ADD CONSTRAINT milestone_state_valid CHECK (state IN ('LOCKED','READY_FOR_REVIEW','REJECTED','UNLOCKED','FROZEN'));
