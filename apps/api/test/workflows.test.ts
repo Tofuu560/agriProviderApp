@@ -11,11 +11,11 @@ const tokens:Record<string,string>={};let cohort:any,otherCohort:any,milestoneId
 async function call(role:string,method:string,url:string,payload?:any){return app.inject({method,url:'/api/v1'+url,headers:{...(tokens[role]?{authorization:'Bearer '+tokens[role]}:{})},payload});}
 async function login(name:string){const r=await call('', 'POST','/auth/login',{email:name+'@agriprovider.test',password:seedModule.demoPassword,transport:'native',...(name==='admin'?{code:authenticator.generate(seedModule.demoMfaSecret)}:{})});expect(r.statusCode,r.body).toBe(200);tokens[name]=r.json().accessToken;return r.json();}
 async function refreshCohort(){const r=await call('provider','GET','/provider/cohorts/'+cohort.id);expect(r.statusCode,r.body).toBe(200);cohort=r.json();}
-async function upload(type:string,signed=false){
+async function upload(type:string,signed=false,expected=200){
  const b='agri-'+randomUUID(),pdf=Buffer.from('%PDF-1.4\nSynthetic test evidence\n%%EOF');
  const meta={type,learnerIds:type==='CERTIFICATES'?cohort.assessments.filter((a:any)=>a.outcome==='PASS').map((a:any)=>a.learnerId):type==='ATTENDANCE_LOG'?[]:cohort.enrolments.map((e:any)=>e.learnerId),sessionIds:type==='ATTENDANCE_LOG'?cohort.sessions.map((s:any)=>s.id):[],signed,...(signed?{signerName:'Demo Signer',signedAt:new Date().toISOString()}:{}),clientOpId:randomUUID()};
  const payload=Buffer.concat([Buffer.from('--'+b+'\r\nContent-Disposition: form-data; name="metadata"\r\n\r\n'+JSON.stringify(meta)+'\r\n--'+b+'\r\nContent-Disposition: form-data; name="file"; filename="evidence.pdf"\r\nContent-Type: application/pdf\r\n\r\n'),pdf,Buffer.from('\r\n--'+b+'--\r\n')]);
- const r=await app.inject({method:'POST',url:'/api/v1/provider/evidence/'+milestoneId,headers:{authorization:'Bearer '+tokens.provider,'content-type':'multipart/form-data; boundary='+b},payload});expect(r.statusCode,r.body).toBe(200);return r.json();
+ const r=await app.inject({method:'POST',url:'/api/v1/provider/evidence/'+milestoneId,headers:{authorization:'Bearer '+tokens.provider,'content-type':'multipart/form-data; boundary='+b},payload});expect(r.statusCode,r.body).toBe(expected);return r.json();
 }
 beforeAll(async()=>{
  core=await import('../src/core.js');db=core.db;seedModule=await import('../src/seed.js');
@@ -43,6 +43,10 @@ describe.sequential('Security and golden journey',()=>{
   const first=await call('provider','POST','/provider/learners',input);expect(first.statusCode,first.body).toBe(200);
   expect((await call('provider','POST','/provider/learners',input)).json().id).toBe(first.json().id);
   expect((await call('provider','POST','/provider/learners',{...input,nationalId:seedModule.fakeId(9),clientOpId:randomUUID()})).statusCode).toBe(409);await refreshCohort();
+ });
+ it('blocks grading before attendance and milestone uploads before assessment',async()=>{
+  const result=await call('assessor','POST','/assessor/assessments',{cohortId:cohort.id,grades:cohort.enrolments.map((e:any)=>({learnerId:e.learnerId,outcome:'PASS'})),clientOpId:randomUUID()});expect(result.statusCode).toBe(409);expect(result.json().code).toBe('ATTENDANCE_REQUIRED');
+  const uploaded=await upload('ENROLMENT_LIST',false,409);expect(uploaded.code).toBe('ASSESSMENT_REQUIRED');
  });
  it('rejects unmarked attendance and replays one offline operation exactly once',async()=>{
   const op=randomUUID(),sessionId=cohort.sessions[0].id;

@@ -1,6 +1,7 @@
 import type {FastifyInstance} from 'fastify';
 import {z} from 'zod';import argon2 from 'argon2';import {authenticator} from 'otplib';
 import {db,transaction,encrypt,decrypt,hash,token,audit,fail} from './core.js';
+import {mfaPresentation} from './mfa.js';
 export async function accountRoutes(app:FastifyInstance){
  app.post('/api/v1/me/push-token',async req=>{const {token:pushToken}=z.object({token:z.string().regex(/^(ExponentPushToken|ExpoPushToken)\[[A-Za-z0-9_-]+\]$/)}).strict().parse(req.body);return transaction(async tx=>{const u=await tx.user.findUniqueOrThrow({where:{id:req.actor.id}});await tx.user.update({where:{id:u.id},data:{pushTokens:[...new Set([...u.pushTokens,pushToken])]}});await audit(tx,req.actor,'PUSH_REGISTERED',u.id);return {ok:true};});});
  app.post('/api/v1/me/mfa/setup',async req=>{
@@ -9,7 +10,7 @@ export async function accountRoutes(app:FastifyInstance){
    if(!u.passwordHash||!await argon2.verify(u.passwordHash,password))fail('INVALID_PASSWORD','The password is incorrect.',403);
    if(u.mfaEnabled)fail('MFA_ENABLED','MFA is already enabled. You can regenerate recovery codes below.',409);
    const secret=authenticator.generateSecret();await tx.user.update({where:{id:u.id},data:{mfaSecret:encrypt(secret)}});
-   await audit(tx,req.actor,'MFA_SETUP_STARTED',u.id);return {secret,otpAuthUrl:authenticator.keyuri(u.email,'AgriProvider',secret)};
+   await audit(tx,req.actor,'MFA_SETUP_STARTED',u.id);return mfaPresentation(u.email,secret);
   });
  });
  app.post('/api/v1/me/mfa/confirm',async req=>{

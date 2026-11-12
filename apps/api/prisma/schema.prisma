@@ -17,6 +17,16 @@ model User {
   passwordHash   String?
   providerId     String?        @db.Uuid
   provider       Provider?      @relation(fields: [providerId], references: [id])
+  learnerId      String?        @unique @db.Uuid
+  learner        Learner?       @relation(fields: [learnerId], references: [id])
+  approvalStatus String         @default("APPROVED")
+  requestedOrganisation String?
+  reviewedAt     DateTime?
+  reviewedBy     String?        @db.Uuid
+  rejectionReason String?
+  country        String         @default("ZA")
+  province       String?
+  phone          String?
   mfaSecret      String?
   mfaEnabled     Boolean        @default(false)
   recoveryHashes String[]       @default([])
@@ -107,6 +117,8 @@ model Cohort {
   assessments Assessment[]
   moderation  ModerationReview[]
   slots       ModerationSlot[]
+  materials   LearningMaterial[]
+  learnerPacks LearnerPack[]
 
   @@unique([providerId, programmeId, code])
 }
@@ -126,6 +138,8 @@ model Learner {
   enrolments          Enrolment[]
   attendance          Attendance[]
   assessments         Assessment[]
+  account             User?
+  packs               LearnerPack[]
 }
 
 model Enrolment {
@@ -147,6 +161,7 @@ model TrainingSession {
   cohortId   String       @db.Uuid
   cohort     Cohort       @relation(fields: [cohortId], references: [id])
   startsAt   DateTime
+  title      String       @default("Training session")
   attendance Attendance[]
 
   @@unique([cohortId, startsAt])
@@ -232,7 +247,22 @@ model Evidence {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  @@unique([milestoneId, type])
+  scopeLearnerId String? @db.Uuid
+  @@index([milestoneId, type, createdAt])
+}
+
+model LearnerPack {
+  id String @id @default(uuid()) @db.Uuid
+  cohortId String @db.Uuid
+  cohort Cohort @relation(fields: [cohortId], references: [id])
+  learnerId String @db.Uuid
+  learner Learner @relation(fields: [learnerId], references: [id])
+  status String @default("DRAFT")
+  reason String?
+  assessorId String? @db.Uuid
+  submittedAt DateTime?
+  updatedAt DateTime @updatedAt
+  @@unique([cohortId, learnerId])
 }
 
 model ModerationReview {
@@ -369,4 +399,14 @@ model SupportGrant {
 model JobHeartbeat {
   name    String   @id
   lastRun DateTime @default(now())
+}
+
+model LearningMaterial {
+  id        String   @id @default(uuid()) @db.Uuid
+  cohortId  String   @db.Uuid
+  cohort    Cohort   @relation(fields: [cohortId], references: [id])
+  title     String
+  content   String
+  url       String?
+  createdAt DateTime @default(now())
 }

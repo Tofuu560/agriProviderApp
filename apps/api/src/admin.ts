@@ -1,17 +1,20 @@
+import {encrypt} from './core.js';
+import {confirmAccountCreated} from './account-mail.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
-import { providerSchema,programmeSchema,cohortSchema,inviteSchema,reasonSchema,settingsSchema } from '@agri/shared';
+import { providerSchema,programmeSchema,inviteSchema,reasonSchema,settingsSchema } from '@agri/shared';
 import { db,fail,mutate,audit,settings,token,hash,notify,assertProvider,type Tx,type Actor } from './core.js';
 import { issueToken } from './auth.js';
 const uuid=z.string().uuid();
-export async function invite(tx:Tx,actor:Actor,input:z.infer<typeof inviteSchema>){
+export async function invite(tx:Tx,actor:Actor,raw:z.input<typeof inviteSchema>){
+ const input=inviteSchema.parse(raw);
  if(await tx.user.findUnique({where:{email:input.email}}))fail('EMAIL_EXISTS','An account already uses this email address.',409);
  if(input.role==='PROVIDER')await assertProvider(tx,input.providerId!,true);
  for(const id of input.cohortIds??[])if(!await tx.cohort.findUnique({where:{id}}))fail('INVALID_SCOPE','The selected cohort does not exist.');
- const u=await tx.user.create({data:{email:input.email,fullName:input.fullName,role:input.role,providerId:input.role==='PROVIDER'?input.providerId:null}});
+ const u=await tx.user.create({data:{email:input.email,fullName:input.fullName,role:input.role,country:input.country,province:input.province,phone:input.phone?encrypt(input.phone):null,providerId:input.role==='PROVIDER'?input.providerId:null}});
  for(const cohortId of input.cohortIds??[])await tx.assignment.create({data:{cohortId,userId:u.id}});
- await issueToken(tx,u.id,'INVITE');await audit(tx,actor,'USER_INVITED',u.id,{role:u.role});return {id:u.id,email:u.email,role:u.role,status:u.status};
+ await issueToken(tx,u.id,'INVITE');await confirmAccountCreated(tx,actor,u.email);await audit(tx,actor,'USER_INVITED',u.id,{role:u.role});return {id:u.id,email:u.email,role:u.role,status:u.status};
 }
 async function applyAction(tx:Tx,actor:Actor,action:string,p:any):Promise<any>{
  if(action==='INVITE_ADMIN')return invite(tx,actor,inviteSchema.parse(p));
@@ -39,6 +42,7 @@ async function protectedAction(tx:Tx,actor:Actor,action:string,p:Prisma.InputJso
 async function changeUser(tx:Tx,actor:Actor,id:string,action:string){
  if(id===actor.id)fail('SELF_CHANGE','You cannot perform this administrative action on your own account.',403);
  const u=await tx.user.findUnique({where:{id}});if(!u)fail('NOT_FOUND','User not found.',404);
+ if(u.approvalStatus!=='APPROVED')fail('APPROVAL_REQUIRED','Review this account in Pending accounts before performing account actions.',409);
  if(action==='deactivate'){
   if(u.role==='ADMIN'&&u.status==='ACTIVE'&&await tx.user.count({where:{role:'ADMIN',status:'ACTIVE'}})<=1)fail('LAST_ADMIN','The last active administrator cannot be deactivated.',409);
   await tx.user.update({where:{id},data:{status:'DEACTIVATED'}});
@@ -55,7 +59,7 @@ async function changeUser(tx:Tx,actor:Actor,id:string,action:string){
  await audit(tx,actor,'USER_'+action.toUpperCase(),id);return {ok:true};
 }
 export async function adminRoutes(app:FastifyInstance){
- app.get('/api/v1/admin/dashboard',async()=>({users:await db.user.groupBy({by:['role','status'],_count:true}),providers:await db.provider.groupBy({by:['status'],_count:true}),pendingApprovals:await db.approvalRequest.count({where:{status:'PENDING',expiresAt:{gt:new Date()}}}),failedEvents:await db.outboxEvent.count({where:{status:'FAILED'}}),expiringProviders:await db.provider.findMany({where:{validTo:{lte:new Date(Date.now()+60*86400000)}}}),recent:await db.auditLog.findMany({orderBy:{createdAt:'desc'},take:15})}));
+ app.get('/api/v1/admin/dashboard',async()=>({users:await db.user.groupBy({by:['role','status'],_count:true}),providers:await db.provider.groupBy({by:['status'],_count:true}),pendingAccounts:await db.user.count({where:{approvalStatus:'PENDING'}}),pendingApprovals:await db.approvalRequest.count({where:{status:'PENDING',expiresAt:{gt:new Date()}}}),failedEvents:await db.outboxEvent.count({where:{status:'FAILED'}}),expiringProviders:await db.provider.findMany({where:{validTo:{lte:new Date(Date.now()+60*86400000)}}}),recent:await db.auditLog.findMany({orderBy:{createdAt:'desc'},take:15})}));
  app.get('/api/v1/admin/users',async()=>db.user.findMany({select:{id:true,email:true,fullName:true,role:true,status:true,providerId:true,mfaEnabled:true,createdAt:true},orderBy:{createdAt:'desc'},take:200}));
  app.post('/api/v1/admin/users',async req=>{const input=inviteSchema.parse(req.body);return mutate(req.actor,undefined,input,tx=>input.role==='ADMIN'?protectedAction(tx,req.actor,'INVITE_ADMIN',input):invite(tx,req.actor,input));});
  app.post('/api/v1/admin/users/:id/:action',async req=>{
@@ -70,22 +74,6 @@ export async function adminRoutes(app:FastifyInstance){
  app.post('/api/v1/admin/programmes',async req=>{const p=programmeSchema.parse(req.body);return mutate(req.actor,undefined,p,async tx=>{const v=await tx.programme.create({data:p});await audit(tx,req.actor,'PROGRAMME_CREATED',v.id);return v;});});
  app.patch('/api/v1/admin/programmes/:id',async req=>{const p=programmeSchema.parse(req.body);const id=uuid.parse((req.params as any).id);return mutate(req.actor,undefined,p,async tx=>{const v=await tx.programme.update({where:{id},data:{...p,version:{increment:1}}});await audit(tx,req.actor,'PROGRAMME_VERSION_CREATED',id);return v;});});
  app.get('/api/v1/admin/cohorts',async()=>db.cohort.findMany({include:{provider:true,programme:true,_count:{select:{enrolments:true}}},take:200}));
- app.post('/api/v1/admin/cohorts',async req=>{
-  const input=cohortSchema.parse(req.body);
-  return mutate(req.actor,undefined,input,async tx=>{
-   await assertProvider(tx,input.providerId,true);const p=await tx.programme.findUnique({where:{id:input.programmeId}});if(!p)fail('NOT_FOUND','Programme not found.',404);
-   if(input.sessionDates.length<p.requiredSessions||new Set(input.sessionDates).size!==input.sessionDates.length)fail('INVALID_SCHEDULE','Provide a unique date for every required session.');
-   const {sessionDates,...values}=input;
-   const c=await tx.cohort.create({data:values});
-   await tx.trainingSession.createMany({data:sessionDates.map(date=>({cohortId:c.id,startsAt:new Date(date)}))});
-   await tx.milestone.create({data:{cohortId:c.id,config:{requiredSessions:p.requiredSessions,attendanceThreshold:p.attendanceThreshold,version:p.version}}});
-   await audit(tx,req.actor,'COHORT_CREATED',c.id);return c;
-  });
- });
- app.patch('/api/v1/admin/cohorts/:id',async req=>{
-  const p=z.object({capacity:z.number().int().min(1).optional(),status:z.enum(['ACTIVE','CLOSED']).optional(),endDate:z.string().datetime().optional()}).strict().parse(req.body);const id=uuid.parse((req.params as any).id);
-  return mutate(req.actor,undefined,p,async tx=>{const c=await tx.cohort.findUniqueOrThrow({where:{id},include:{_count:{select:{enrolments:true}},milestones:true}});if(p.capacity!==undefined&&p.capacity<c._count.enrolments)fail('CAPACITY_TOO_SMALL','Capacity cannot be below current enrolment.',409);if(c.milestones.some(m=>['READY_FOR_REVIEW','UNLOCKED'].includes(m.state))&&p.capacity!==undefined&&p.capacity!==c.capacity)fail('CONFIG_LOCKED','Capacity is locked during and after QA review.',409);if(p.endDate&&new Date(p.endDate)<c.endDate)fail('DATE_EXTENSION_ONLY','Active cohort dates may only be extended.');if(p.status==='ACTIVE')await assertProvider(tx,c.providerId,true);const r=await tx.cohort.update({where:{id},data:p});await audit(tx,req.actor,'COHORT_UPDATED',id);return r;});
- });
  app.get('/api/v1/admin/assignments',async()=>db.assignment.findMany({include:{user:{select:{fullName:true,email:true}},cohort:{include:{programme:true}}},take:200}));
  app.post('/api/v1/admin/assignments',async req=>{
   const p=z.object({userId:uuid,cohortId:uuid,active:z.boolean()}).strict().parse(req.body);

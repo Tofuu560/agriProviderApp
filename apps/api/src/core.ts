@@ -28,7 +28,7 @@ export async function mutate<T>(actor:Actor,op:string|undefined,body:unknown,fn:
 }
 export async function assertProvider(tx:Tx,providerId:string,write=false){const p=await tx.provider.findUnique({where:{id:providerId}});if(!p)fail('NOT_FOUND','Record not found.',404);if(write&&(p.status!=='ACCREDITED'||p.validTo<new Date()))fail('PROVIDER_SUSPENDED','This provider is suspended or its accreditation has expired. Contact your administrator.',409);return p;}
 export async function cohortFor(tx:Tx,actor:Actor,id:string,write=false){
- const c=await tx.cohort.findUnique({where:{id},include:{provider:true,programme:true,enrolments:{include:{learner:true}},sessions:{orderBy:{startsAt:'asc'},include:{attendance:true}},milestones:{include:{evidence:true,findings:true}},assessments:true,moderation:{orderBy:{createdAt:'desc'}},assignments:true}});
+ const c=await tx.cohort.findUnique({where:{id},include:{learnerPacks:true,provider:true,programme:true,enrolments:{include:{learner:{include:{account:{select:{email:true}}}}}},sessions:{orderBy:{startsAt:'asc'},include:{attendance:true}},milestones:{include:{evidence:true,findings:true}},assessments:true,moderation:{orderBy:{createdAt:'desc'}},assignments:true}});
  if(!c||(actor.role==='PROVIDER'&&c.providerId!==actor.providerId)||(actor.role==='ASSESSOR'&&!c.assignments.some(a=>a.userId===actor.id&&a.active)))fail('NOT_FOUND','Record not found.',404);
  if(write){await assertProvider(tx,c.providerId,true);if(c.status!=='ACTIVE')fail('COHORT_CLOSED','This cohort is not active.',409);}
  return c;

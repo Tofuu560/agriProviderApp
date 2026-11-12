@@ -6,7 +6,7 @@ import Feather from '@expo/vector-icons/Feather';
 import {landing} from '@agri/shared';
 import {useSession} from '../../lib/session';
 import {theme as t} from '../../lib/theme';
-const pages=[['dashboard','Dashboard'],['users','Users'],['providers','Providers'],['programmes','Programmes'],['cohorts','Cohorts'],['assignments','Assignments'],['approvals','Approvals'],['integrations','Integrations'],['audit-log','Audit log'],['settings','Settings'],['data-requests','Data requests'],['health','System health'],['security','Account & notifications']];
+const pages=[['dashboard','Dashboard'],['users','Users'],['pending-accounts','Pending accounts'],['providers','Providers'],['programmes','Programmes'],['cohorts','Cohorts'],['assignments','Assignments'],['approvals','Approvals'],['integrations','Integrations'],['audit-log','Audit log'],['settings','Settings'],['data-requests','Data requests'],['health','System health'],['security','Account & notifications']];
 export default function Layout(){
  const {user,ready,logout}=useSession(),{width}=useWindowDimensions(),[open,setOpen]=useState(false),path=usePathname();
  if(!ready)return null;if(!user)return <Redirect href="/(auth)/login"/>;if(user.role!=='ADMIN')return <Redirect href={landing[user.role] as any}/>;

@@ -1,0 +1,3 @@
+export function formatSast(value:string|Date,dateOnly=false){return new Intl.DateTimeFormat('en-ZA',{timeZone:'Africa/Johannesburg',year:'numeric',month:'short',day:'2-digit',...(dateOnly?{}:{hour:'2-digit',minute:'2-digit',hour12:false})}).format(new Date(value))+(dateOnly?'':' SAST');}
+export function sastIso(value:string,endOfDay=false){if(!value)throw new Error('Choose a date.');return new Date(value.length===10?value+(endOfDay?'T23:59:59':'T00:00:00')+'+02:00':/Z$|[+-]\d{2}:\d{2}$/.test(value)?value:value+':00+02:00').toISOString();}
+export function sastInput(value:string){return new Date(new Date(value).getTime()+7200000).toISOString().slice(0,16);}

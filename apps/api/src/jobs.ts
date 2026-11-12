@@ -10,6 +10,7 @@ export async function dispatch(){
    const p=item.payload as any;
    if(item.type==='NOTIFICATION'){const users=await db.user.findMany({where:{id:{in:p.userIds},status:'ACTIVE'},select:{pushTokens:true}});const messages=users.flatMap(u=>u.pushTokens.map(to=>({to,title:'AgriProvider',body:p.message,sound:'default'})));for(let i=0;i<messages.length;i+=100){const r=await fetch('https://exp.host/--/api/v2/push/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(messages.slice(i,i+100)),signal:AbortSignal.timeout(10000)});if(!r.ok)throw new Error('Push delivery failed');const result:any=await r.json();if(result.errors?.length||result.data?.some((x:any)=>x.status==='error'))throw new Error('Push ticket rejected');}}
    if(item.type==='EMAIL')await sendMail(p.to,p.subject,decrypt(p.encryptedText),item.id);
+   if(item.type==='CERTIFICATION'&&!await db.milestone.findFirst({where:{id:p.milestoneId,state:'UNLOCKED'}})){await db.outboxEvent.update({where:{id:item.id},data:{status:'CANCELLED',lastError:'Certification reopened for review.'}});continue;}
    if(item.type==='CERTIFICATION'&&env.PASSPORT_URL){const r=await fetch(env.PASSPORT_URL,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.PASSPORT_KEY,'Idempotency-Key':item.id},body:JSON.stringify(p),signal:AbortSignal.timeout(10000)});if(!r.ok)throw new Error('Passport returned '+r.status);}
    await db.outboxEvent.update({where:{id:item.id},data:{status:'DELIVERED',attempts:{increment:1},lastError:null}});
   }catch{

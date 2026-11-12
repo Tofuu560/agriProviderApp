@@ -10,7 +10,7 @@ export const demoMfaSecret='JBSWY3DPEHPK3PXP';
 export function fakeId(index:number){const base='900101'+String(5000+index).padStart(4,'0')+'08';for(let digit=0;digit<10;digit++){const id=base+digit;if(validSaId(id))return id;}throw new Error('Synthetic ID generation failed');}
 export async function seed(){
  if(env.NODE_ENV==='production')throw new Error('Demo seed is disabled in production.');
- if(await db.user.count())return;
+ if(await db.user.count()){await seedLearnerAccounts();return;}
  const passwordHash=await argon2.hash(demoPassword);
  await transaction(async tx=>{
   await tx.systemSetting.create({data:{version:1,value:defaultSettings}});
@@ -35,7 +35,17 @@ export async function seed(){
   await tx.finding.create({data:{providerId:providers[0].id,officerName:'Zanele Khumalo',region:'Newcastle',description:'Certificate pack requires a signature before verification.',status:'SELECTED'}});
   await audit(tx,system,'DEMO_SEEDED','development');
  });
+ await seedLearnerAccounts();
  // Demo invitations were consumed; do not send unusable invitation messages.
  await db.outboxEvent.updateMany({where:{type:'EMAIL'},data:{status:'DELIVERED'}});
+}
+// Add only missing synthetic learner logins; existing development records remain intact.
+async function seedLearnerAccounts(){
+ const provider=await db.user.findUnique({where:{email:'provider@agriprovider.test'}});
+ if(!provider?.providerId)return;
+ for(const [i,fullName] of ['Nomsa Nkosi','Lerato Dube'].entries()){
+  const learner=await db.learner.findFirst({where:{fullName,enrolments:{some:{cohort:{providerId:provider.providerId}}}},include:{account:true}});
+  if(learner&&!learner.account){const email=i?'learner2@agriprovider.test':'learner@agriprovider.test';if(!await db.user.findUnique({where:{email}}))await db.user.create({data:{email,fullName,role:'LEARNER',learnerId:learner.id,status:'ACTIVE',passwordHash:await argon2.hash(demoPassword)}});}
+ }
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){await seed();console.log('Synthetic demo accounts ready. See README for credentials. Admin TOTP:',authenticator.generate(demoMfaSecret));await db.$disconnect();}

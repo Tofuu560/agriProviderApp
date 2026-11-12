@@ -1,3 +1,4 @@
+import {env} from './config.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { learnerSchema,attendanceSchema,assessmentSchema,evidenceTypes,reasonSchema } from '@agri/shared';
@@ -5,32 +6,33 @@ import { db,fail,mutate,cohortFor,audit,hash,encrypt,checksum,notify,settings,ty
 import { storage,detectMime,scan,reportPdf } from './storage.js';
 const uuid=z.string().uuid();
 const params=(req:any)=>uuid.parse(req.params.id);
-export function safeCohort(c:any){return {...c,assignments:undefined,enrolments:c.enrolments.map((e:any)=>({id:e.id,learnerId:e.learnerId,learner:{id:e.learner.id,fullName:e.learner.fullName,maskedId:'•••••••••'+e.learner.idLastFour,consentAt:e.learner.consentAt,complete:c.milestones.some((m:any)=>m.evidence.some((v:any)=>v.type==='CONSENT_FORMS'&&v.learnerIds.includes(e.learnerId)))}}))};}
-export function packStatus(c:any,m:any){
- const ids=c.enrolments.map((e:any)=>e.learnerId),passed=c.assessments.filter((a:any)=>a.outcome==='PASS').map((a:any)=>a.learnerId);
+export function safeCohort(c:any){return {...c,assignments:undefined,enrolments:c.enrolments.map((e:any)=>({id:e.id,learnerId:e.learnerId,learner:{id:e.learner.id,fullName:e.learner.fullName,maskedId:'•••••••••'+e.learner.idLastFour,accountEmail:e.learner.account?.email??null,consentAt:e.learner.consentAt,complete:c.milestones.some((m:any)=>m.evidence.some((v:any)=>v.type==='CONSENT_FORMS'&&v.learnerIds.includes(e.learnerId)))}}))};}
+export function learnerPackStatus(c:any,m:any,learnerId:string){
+ const files=[...m.evidence].sort((a:any,b:any)=>new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime());
+ const assessment=c.assessments.find((a:any)=>a.learnerId===learnerId);
  return evidenceTypes.map(type=>{
-  const e=m.evidence.find((v:any)=>v.type===type);
-  let message='Missing';
-  if(e&&e.status!=='REJECTED'){
-   const covers=(expected:string[],actual:string[])=>expected.length===actual.length&&expected.every(id=>actual.includes(id));
-   let ok=true;
-   if(['ENROLMENT_LIST','ID_DOCUMENTS','CONSENT_FORMS'].includes(type))ok=covers(ids,e.learnerIds)&&ids.length>0;
-   if(type==='ATTENDANCE_LOG')ok=covers(c.sessions.map((s:any)=>s.id),e.sessionIds);
-   if(type==='CERTIFICATES')ok=c.assessments.length===ids.length&&covers(passed,e.learnerIds)&&e.signed&&!!e.signerName&&!!e.signedAt;
-   if(type==='ASSESSOR_REPORT')ok=c.assessments.length===ids.length&&ids.length>0;
-   message=ok?'Uploaded':type==='CERTIFICATES'&&!e.signed?'Missing signature':'Needs attention';
-  }else if(e)message='Needs attention';
-  return {type,status:message,evidenceId:e?.id,fileName:e?.fileName};
+  const scoped=files.find((e:any)=>e.type===type&&e.scopeLearnerId===learnerId);
+  const e=scoped??files.find((e:any)=>e.type===type&&!e.scopeLearnerId&&(e.learnerIds.includes(learnerId)||type==='ATTENDANCE_LOG'));
+  const notRequired=type==='CERTIFICATES'&&assessment?.outcome==='FAIL';
+  let ok=!!e&&e.status!=='REJECTED';
+  if(type==='ATTENDANCE_LOG')ok=ok&&c.sessions.every((s:any)=>e.sessionIds.includes(s.id));
+  if(type==='CERTIFICATES')ok=ok&&assessment?.outcome==='PASS'&&e.signed&&!!e.signerName&&!!e.signedAt;
+  if(type==='ASSESSOR_REPORT')ok=ok&&!!assessment;
+  return {type,status:notRequired||ok?'Uploaded':e&&type==='CERTIFICATES'&&!e.signed?'Missing signature':e?'Needs attention':'Missing',evidenceId:e?.id,fileName:e?.fileName,notRequired};
  });
+}
+export function packStatus(c:any,m:any){
+ const packs=c.enrolments.map((e:any)=>learnerPackStatus(c,m,e.learnerId));
+ return evidenceTypes.map(type=>{const items=packs.map((p:any)=>p.find((e:any)=>e.type===type));const first=items.find((i:any)=>i.evidenceId);return {type,status:items.length&&items.every((i:any)=>i.status==='Uploaded')?'Uploaded':items.some((i:any)=>i.status==='Missing signature')?'Missing signature':items.some((i:any)=>i.evidenceId)?'Needs attention':'Missing',evidenceId:first?.evidenceId,fileName:first?.fileName};});
 }
 export function conditions(c:any,m:any){
  const config=m.config as any;const enrolled=c.enrolments.length;
  const attendance=c.sessions.length>=config.requiredSessions&&c.sessions.every((s:any)=>s.attendance.length===enrolled&&s.startsAt<=new Date())&&c.enrolments.every((e:any)=>100*c.sessions.filter((s:any)=>s.attendance.some((a:any)=>a.learnerId===e.learnerId&&a.status!=='ABSENT')).length/c.sessions.length>=config.attendanceThreshold);
  const pack=packStatus(c,m);
- return {enrolment:enrolled===c.capacity&&enrolled>0&&pack.filter(e=>['ENROLMENT_LIST','ID_DOCUMENTS','CONSENT_FORMS'].includes(e.type)).every(e=>e.status==='Uploaded'),attendance:attendance&&pack.find(e=>e.type==='ATTENDANCE_LOG')?.status==='Uploaded',certification:pack.find(e=>e.type==='CERTIFICATES')?.status==='Uploaded'&&pack.find(e=>e.type==='ASSESSOR_REPORT')?.status==='Uploaded'&&c.moderation[0]?.status==='SIGNED_OFF'};
+ return {enrolment:enrolled===c.capacity&&enrolled>0&&pack.filter(e=>['ENROLMENT_LIST','ID_DOCUMENTS','CONSENT_FORMS'].includes(e.type)).every(e=>e.status==='Uploaded'),attendance:attendance&&pack.find(e=>e.type==='ATTENDANCE_LOG')?.status==='Uploaded',certification:(!c.learnerPacks?.length||c.enrolments.every((e:any)=>c.learnerPacks.some((p:any)=>p.learnerId===e.learnerId&&p.status==='VERIFIED')))&&pack.find(e=>e.type==='CERTIFICATES')?.status==='Uploaded'&&pack.find(e=>e.type==='ASSESSOR_REPORT')?.status==='Uploaded'&&c.moderation[0]?.status==='SIGNED_OFF'};
 }
 async function editable(tx:Tx,c:any){if(c.milestones.some((m:any)=>['UNLOCKED','FROZEN'].includes(m.state)))fail('MILESTONE_LOCKED','This milestone is locked. Ask QA to review it.',409);}
-async function resetReview(tx:Tx,c:any){for(const m of c.milestones)await tx.milestone.update({where:{id:m.id},data:{state:'LOCKED',enrolmentCondition:'PENDING',attendanceCondition:'PENDING',certificationCondition:'PENDING',submittedAt:null}});if(c.moderation.length)await tx.moderationReview.create({data:{cohortId:c.id,moderatorId:c.moderation[0].moderatorId,status:'STALE',reason:'Evidence or records changed; review again.'}});}
+export async function resetReview(tx:Tx,c:any){for(const m of c.milestones)await tx.milestone.update({where:{id:m.id},data:{state:'LOCKED',enrolmentCondition:'PENDING',attendanceCondition:'PENDING',certificationCondition:'PENDING',submittedAt:null}});if(c.moderation.length)await tx.moderationReview.create({data:{cohortId:c.id,moderatorId:c.moderation[0].moderatorId,status:'STALE',reason:'Evidence or records changed; review again.'}});}
 export async function domainRoutes(app:FastifyInstance){
  for(const role of ['provider','assessor'])app.get('/api/v1/'+role+'/cohorts',async req=>{
   const ids=await db.cohort.findMany({where:role==='provider'?{providerId:req.actor.providerId!}:{assignments:{some:{userId:req.actor.id,active:true}}},select:{id:true},take:100});
@@ -41,7 +43,7 @@ export async function domainRoutes(app:FastifyInstance){
   const input=learnerSchema.parse(req.body);
   return mutate(req.actor,input.clientOpId,input,async tx=>{
    const c=await cohortFor(tx,req.actor,input.cohortId,true);await editable(tx,c);
-   if(c.enrolments.length>=c.capacity)fail('CAPACITY_REACHED','This cohort is full. Ask your administrator about another cohort.',409);
+   if(c.enrolments.length>=c.capacity)fail('CAPACITY_REACHED','This cohort is full. Create or select another cohort in My programmes.',409);
    if(await tx.enrolment.findUnique({where:{programmeId_nationalIdHash:{programmeId:c.programmeId,nationalIdHash:hash(input.nationalId)}}}))fail('DUPLICATE_LEARNER','This learner is already enrolled in this programme.',409);
    const l=await tx.learner.create({data:{fullName:input.fullName,nationalIdEncrypted:encrypt(input.nationalId),nationalIdHash:hash(input.nationalId),idLastFour:input.nationalId.slice(-4),phoneEncrypted:encrypt(input.phone),consentAt:new Date(),consentVersion:'2026-01'}});
    await tx.enrolment.create({data:{cohortId:c.id,programmeId:c.programmeId,learnerId:l.id,nationalIdHash:l.nationalIdHash}});
@@ -69,20 +71,23 @@ export async function domainRoutes(app:FastifyInstance){
   const milestoneId=params(req);const part=await req.file({limits:{fileSize:(await settings()).maxFileMb*1024*1024}});
   if(!part)fail('FILE_REQUIRED','Choose a PDF, JPG or PNG file.');
   const data=await part.toBuffer();if(part.file.truncated)fail('FILE_TOO_LARGE','This file exceeds the upload limit.',413);
-  const mime=detectMime(data);if(!mime)fail('INVALID_FILE','Only genuine PDF, JPG and PNG files are accepted.');
+  let mime=detectMime(data);
   const fields=part.fields as any;let raw:unknown;try{raw=JSON.parse(String(fields.metadata?.value??'{}'));}catch{fail('INVALID_METADATA','The upload metadata must be valid JSON.');}
   const input=z.object({type:z.enum(evidenceTypes),learnerIds:z.array(uuid),sessionIds:z.array(uuid),signed:z.boolean(),signerName:z.string().optional(),signedAt:z.string().datetime().optional(),clientOpId:uuid}).strict().parse(raw);
+  if(!mime&&!(input.type==='CERTIFICATES'&&env.NODE_ENV!=='production'))fail('INVALID_FILE','Only genuine PDF, JPG and PNG files are accepted.');
+  mime=mime??'application/octet-stream';
   if(input.type==='ASSESSOR_REPORT')fail('FORBIDDEN','Assessor reports attach automatically after grading.',403);
   if(input.signed&&(!input.signerName?.trim()||!input.signedAt||new Date(input.signedAt)>new Date()))fail('SIGNATURE_REQUIRED','A signed certificate requires a signer name and a valid signing date.');
   const scanStatus=await scan(data),sum=checksum(data);
   return mutate(req.actor,input.clientOpId,{...input,checksum:sum},async tx=>{
    const m=await tx.milestone.findUnique({where:{id:milestoneId}});if(!m)fail('NOT_FOUND','Milestone not found.',404);
    const c=await cohortFor(tx,req.actor,m.cohortId,true);await editable(tx,c);
+   if(!c.enrolments.length||c.assessments.length!==c.enrolments.length)fail('ASSESSMENT_REQUIRED','Complete attendance and assessment before uploading milestone evidence.',409);
    if(input.learnerIds.some(id=>!c.enrolments.some(e=>e.learnerId===id))||input.sessionIds.some(id=>!c.sessions.some(s=>s.id===id)))fail('INVALID_COVERAGE','Evidence must refer only to this cohort.');
    if(input.type==='CERTIFICATES'&&input.learnerIds.some(id=>!c.assessments.some(a=>a.learnerId===id&&a.outcome==='PASS')))fail('INVALID_CERTIFICATE','Certificates can only cover learners who passed.');
    const key=await storage.put(data,mime);
    const values={storageKey:key,fileName:part.filename.slice(0,200),mime,size:data.length,checksum:sum,ownerId:req.actor.id,learnerIds:input.learnerIds,sessionIds:input.sessionIds,signed:input.signed,signerName:input.signerName??null,signedAt:input.signedAt?new Date(input.signedAt):null,scanStatus,status:'UPLOADED'};
-   const e=await tx.evidence.upsert({where:{milestoneId_type:{milestoneId,type:input.type}},create:{milestoneId,type:input.type,...values},update:values});
+   const e=await tx.evidence.create({data:{milestoneId,type:input.type,...values}});
    await resetReview(tx,c);await audit(tx,req.actor,'EVIDENCE_UPLOADED',e.id,{type:input.type,checksum:sum},input.clientOpId);return {id:e.id};
   });
  });
@@ -103,9 +108,12 @@ export async function domainRoutes(app:FastifyInstance){
    if(!ids.length||map.size!==ids.length||input.grades.length!==ids.length||ids.some(id=>!map.has(id)))fail('INCOMPLETE_GRADING','Grade every learner in this cohort before submitting.');
    if(ids.some(id=>!c.sessions.some(s=>s.attendance.some(a=>a.learnerId===id))))fail('ATTENDANCE_REQUIRED','Attendance must be recorded for every learner before grading.',409);
    await tx.assessment.createMany({data:input.grades.map(g=>({...g,cohortId:c.id,assessorId:req.actor.id}))});
-   const data=reportPdf('AgriProvider assessor report | '+c.code+' | '+req.actor.fullName+' | '+input.grades.map(g=>g.learnerId+':'+g.outcome).join(' '));
-   const storageKey=await storage.put(data,'application/pdf');
-   for(const m of c.milestones)await tx.evidence.upsert({where:{milestoneId_type:{milestoneId:m.id,type:'ASSESSOR_REPORT'}},create:{milestoneId:m.id,type:'ASSESSOR_REPORT',storageKey,fileName:'assessor-report.pdf',mime:'application/pdf',size:data.length,checksum:checksum(data),ownerId:req.actor.id,learnerIds:ids,scanStatus:'GENERATED'},update:{storageKey,checksum:checksum(data),ownerId:req.actor.id,learnerIds:ids,status:'UPLOADED'}});
+   for(const grade of input.grades){
+    const learner=c.enrolments.find(e=>e.learnerId===grade.learnerId)!.learner;
+    const data=reportPdf('AgriProvider assessor report | '+c.code+' | '+learner.fullName+' | '+grade.outcome+' | '+req.actor.fullName);
+    const storageKey=await storage.put(data,'application/pdf');
+    for(const m of c.milestones)await tx.evidence.create({data:{milestoneId:m.id,scopeLearnerId:grade.learnerId,type:'ASSESSOR_REPORT',storageKey,fileName:'assessor-report-'+learner.fullName+'.pdf',mime:'application/pdf',size:data.length,checksum:checksum(data),ownerId:req.actor.id,learnerIds:[grade.learnerId],scanStatus:'GENERATED'}});
+   }
    await resetReview(tx,c);await audit(tx,req.actor,'ASSESSMENTS_SUBMITTED',c.id,{count:ids.length},input.clientOpId);await notify(tx,['PROVIDER'],'Assessment results are available for '+c.code,c.providerId);return {ok:true};
   });
  });
@@ -131,26 +139,28 @@ export async function domainRoutes(app:FastifyInstance){
  app.get('/api/v1/qa/audits',async()=>db.milestone.findMany({include:{cohort:{include:{provider:true,programme:true}},findings:true},orderBy:[{submittedAt:{sort:'asc',nulls:'last'}},{createdAt:'asc'}],take:100}));
  app.post('/api/v1/qa/milestones/:id/:action',async req=>{
   const p=z.object({id:uuid,action:z.enum(['verify','unlock','reject'])}).parse(req.params);
-  const input=z.object({condition:z.enum(['enrolment','attendance','certification']).optional(),reason:reasonSchema.optional(),evidenceIds:z.array(uuid).optional()}).strict().parse(req.body??{});
+  const input=z.object({condition:z.enum(['enrolment','attendance','certification']).optional(),reason:z.string().trim().min(1).max(2000).optional(),evidenceIds:z.array(uuid).optional()}).strict().parse(req.body??{});
   return mutate(req.actor,undefined,{p,input},async tx=>{
    const m=await tx.milestone.findUnique({where:{id:p.id}});if(!m)fail('NOT_FOUND','Milestone not found.',404);
-   const c=await cohortFor(tx,req.actor,m.cohortId,true);await editable(tx,c);
-   if(m.state!=='READY_FOR_REVIEW')fail('INVALID_TRANSITION','This milestone is not ready for QA review.',409);
+   const c=await cohortFor(tx,req.actor,m.cohortId);if(p.action!=='reject')await editable(tx,c);
+   if(p.action!=='reject'&&m.state!=='READY_FOR_REVIEW')fail('INVALID_TRANSITION','This milestone is not ready for QA review.',409);
    if(p.action==='verify'){
     if(!input.condition)fail('CONDITION_REQUIRED','Choose a condition to verify.');
     if(!conditions(c,c.milestones.find(x=>x.id===m.id))[input.condition])fail('CONDITION_INCOMPLETE','The underlying records do not meet this condition.',409);
     await tx.milestone.update({where:{id:m.id},data:{[input.condition+'Condition']:'VERIFIED'}});
    }else if(p.action==='reject'){
-    if(!input.reason||!input.evidenceIds?.length)fail('REASON_REQUIRED','Select evidence and explain what needs correction.');
+    if(!input.reason)fail('REASON_REQUIRED','Explain what needs correction.');
+    input.evidenceIds=input.evidenceIds?.length?input.evidenceIds:c.milestones.find(x=>x.id===m.id)!.evidence.map(e=>e.id);
     if(input.evidenceIds.some(id=>!c.milestones.find(x=>x.id===m.id)!.evidence.some(e=>e.id===id)))fail('NOT_FOUND','Evidence not found.',404);
     await tx.evidence.updateMany({where:{id:{in:input.evidenceIds},milestoneId:m.id},data:{status:'REJECTED'}});
-    await tx.milestone.update({where:{id:m.id},data:{state:'REJECTED',rejectionReason:input.reason,enrolmentCondition:'PENDING',attendanceCondition:'PENDING',certificationCondition:'PENDING'}});
+    await tx.learnerPack.updateMany({where:{cohortId:c.id},data:{status:'CHANGES_REQUESTED',reason:input.reason}});
+    await tx.milestone.update({where:{id:m.id},data:{unlockedAt:null,state:'REJECTED',rejectionReason:input.reason,enrolmentCondition:'PENDING',attendanceCondition:'PENDING',certificationCondition:'PENDING'}});
    }else {
     const underlying=conditions(c,c.milestones.find(x=>x.id===m.id));
     if(![m.enrolmentCondition,m.attendanceCondition,m.certificationCondition].every(v=>v==='VERIFIED')||!Object.values(underlying).every(Boolean)||await tx.finding.count({where:{providerId:c.providerId,status:'FOLLOW-UP',OR:[{milestoneId:null},{milestoneId:m.id}]}}))fail('MILESTONE_BLOCKED','Verify all conditions and resolve linked follow-up findings before unlocking.',409);
     await tx.milestone.update({where:{id:m.id},data:{state:'UNLOCKED',unlockedAt:new Date()}});
     const payload={milestoneId:m.id,cohortId:c.id,providerId:c.providerId,passedLearnerIds:c.assessments.filter(a=>a.outcome==='PASS').map(a=>a.learnerId)};
-    await tx.certificationEvent.create({data:{milestoneId:m.id,payload}});await tx.outboxEvent.create({data:{type:'CERTIFICATION',payload}});
+    await tx.certificationEvent.upsert({where:{milestoneId:m.id},create:{milestoneId:m.id,payload},update:{payload}});await tx.outboxEvent.create({data:{type:'CERTIFICATION',payload}});
    }
    await audit(tx,req.actor,'QA_'+p.action.toUpperCase(),m.id,{condition:input.condition??'',reason:input.reason??''});
    await notify(tx,['PROVIDER'],'QA '+p.action+' for '+c.code,c.providerId);return {ok:true};

@@ -14,7 +14,7 @@
     "db:migrate": "pnpm --filter @agri/api db:migrate",
     "seed": "pnpm --filter @agri/api seed",
     "build:web": "pnpm --filter @agri/mobile build:web",
-    "test:web": "playwright test"
+    "test:web": "node scripts/test-web.mjs"
   },
   "devDependencies": {
     "eslint": "^9.39.1",

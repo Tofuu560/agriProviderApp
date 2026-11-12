@@ -5,6 +5,8 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "dependencies": {
+    "country-state-city": "^3.2.1",
+    "libphonenumber-js": "^1.13.16",
     "zod": "^3.25.76"
   },
   "scripts": {
