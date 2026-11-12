@@ -20,6 +20,8 @@ Provisioned project: **AgriProvider Frankfurt**, ID `square-paper-75369060`, Pos
 The local CI workflow uses an ephemeral PostgreSQL service. A separate Neon CI branch should be created and destroyed per run if Neon CI credentials are configured; development connection strings must not be reused for tests.
 
 ## Render
+Current uncommitted deployment/build preparation and outstanding account setup are recorded in [Render MVP release](render-mvp-release.md). The Blueprint uses Docker for the API/worker/cron so ClamAV can be installed, selects Frankfurt, and disables automatic deploys. Secret prompts belong on the API service; shared services reference them.
+
 The Blueprint defines API, web static site, worker and housekeeping cron. Set its root directory to the folder containing this README if deploying a parent repository. Configure the shared secret environment group in Render before deployment.
 
 Production uses private S3/R2 storage, SMTP delivery and a working ClamAV-compatible executable selected by CLAMSCAN_PATH. Install the scanner and maintain its signature database in your production runtime; startup/upload validation fails closed if it is missing or broken. Local filesystem evidence storage is forbidden in production.

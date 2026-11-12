@@ -1,0 +1,26 @@
+.git
+.env
+.env.*
+!.env.example
+node_modules/
+.expo/
+dist/
+dist-native/
+.data/
+logs/
+playwright-report/
+test-results/
+*.tsbuildinfo
+credentials.json
+*.jks
+*.keystore
+/docs/
+/output/
+/app/
+/backend/
+# Preserve legacy lockfiles locally, but use only pnpm in cloud builds.
+package-lock.json
+npm-shrinkwrap.json
+yarn.lock
+bun.lock
+bun.lockb

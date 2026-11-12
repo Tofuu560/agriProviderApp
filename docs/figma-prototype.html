@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgriProvider - Interactive Figma UI/UX Design Prototype</title>
+  <style>
+    :root {
+      --primary: #164c38;
+      --primary-hover: #1e6b4f;
+      --secondary: #2e9e73;
+      --surface-light: #e0eee6;
+      --bg: #f4f8f5;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --border: #cbd5e1;
+      --success: #16a34a;
+      --warning: #d97706;
+      --error: #dc2626;
+      --info: #2563eb;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background: #0f172a; color: #f8fafc; padding: 24px; min-height: 100vh; }
+    header { text-align: center; margin-bottom: 24px; }
+    header h1 { font-size: 26px; color: #4ade80; margin-bottom: 6px; }
+    header p { color: #94a3b8; font-size: 14px; }
+    
+    .role-tabs { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+    .role-btn {
+      background: #1e293b; color: #cbd5e1; border: 1px solid #334155; padding: 10px 18px;
+      border-radius: 9999px; cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.2s;
+    }
+    .role-btn:hover { background: #334155; color: #fff; }
+    .role-btn.active { background: #22c55e; color: #022c22; border-color: #22c55e; }
+
+    .device-container {
+      display: flex; justify-content: center; align-items: flex-start; gap: 32px; flex-wrap: wrap;
+    }
+    .phone-frame {
+      width: 380px; height: 740px; background: #ffffff; color: var(--text);
+      border-radius: 40px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      border: 12px solid #1e293b; overflow: hidden; display: flex; flex-direction: column;
+      position: relative;
+    }
+    .phone-notch {
+      width: 140px; height: 22px; background: #1e293b; margin: 0 auto;
+      border-bottom-left-radius: 14px; border-bottom-right-radius: 14px;
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 100;
+    }
+    .app-header {
+      background: var(--primary); color: white; padding: 34px 18px 14px; display: flex;
+      justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .app-header h2 { font-size: 16px; font-weight: 700; }
+    .sync-badge {
+      font-size: 11px; background: rgba(255,255,255,0.15); padding: 4px 10px;
+      border-radius: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px;
+    }
+    .sync-dot { width: 7px; height: 7px; background: #4ade80; border-radius: 50%; }
+
+    .app-content { flex: 1; overflow-y: auto; padding: 16px; background: var(--bg); }
+    .card {
+      background: white; border-radius: 12px; padding: 14px; margin-bottom: 14px;
+      border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .card-title { font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 8px; }
+    .stat-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; }
+    .stat-label { color: var(--text-muted); }
+    .stat-val { font-weight: 600; color: var(--text); }
+    
+    .badge {
+      display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 8px;
+      border-radius: 6px; text-transform: uppercase;
+    }
+    .badge-green { background: #dcfce7; color: #166534; }
+    .badge-amber { background: #fef3c7; color: #92400e; }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+
+    .btn {
+      display: block; width: 100%; padding: 11px; background: var(--primary); color: white;
+      text-align: center; border-radius: 8px; font-weight: 600; font-size: 13px; border: none;
+      cursor: pointer; margin-top: 10px; text-decoration: none;
+    }
+    .btn:hover { background: var(--primary-hover); }
+    .btn-secondary { background: white; color: var(--primary); border: 1px solid var(--primary); }
+    
+    .nav-bar {
+      height: 58px; background: white; border-top: 1px solid #e2e8f0;
+      display: flex; justify-content: space-around; align-items: center;
+    }
+    .nav-item { font-size: 10px; color: var(--text-muted); text-align: center; text-decoration: none; }
+    .nav-item.active { color: var(--primary); font-weight: 700; }
+    .nav-icon { font-size: 18px; display: block; margin-bottom: 2px; }
+
+    .spec-panel {
+      max-width: 420px; background: #1e293b; border-radius: 16px; padding: 22px;
+      border: 1px solid #334155; font-size: 13px; line-height: 1.6;
+    }
+    .spec-panel h3 { color: #38bdf8; font-size: 16px; margin-bottom: 12px; }
+    .spec-panel ul { padding-left: 20px; margin-bottom: 12px; }
+    .spec-panel li { margin-bottom: 6px; color: #cbd5e1; }
+    .token-chip { display: inline-block; background: #0f172a; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 11px; color: #a5f3fc; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>AgriProvider Figma UI/UX Interactive Specification</h1>
+    <p>Mobile-first, offline-first design architecture for South African Agricultural Accreditation & Training</p>
+  </header>
+
+  <div class="role-tabs">
+    <button class="role-btn active" onclick="setRole('provider')">1. Provider Portal</button>
+    <button class="role-btn" onclick="setRole('assessor')">2. Assessor Portal</button>
+    <button class="role-btn" onclick="setRole('qa')">3. QA Officer Portal</button>
+    <button class="role-btn" onclick="setRole('admin')">4. Admin Portal (MFA)</button>
+    <button class="role-btn" onclick="setRole('learner')">5. Learner Portal</button>
+  </div>
+
+  <div class="device-container">
+    <!-- Mobile Frame -->
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      
+      <div class="app-header">
+        <h2 id="screen-title">Provider: Citrus Farming</h2>
+        <div class="sync-badge"><div class="sync-dot"></div><span id="sync-status">Online (Synced)</span></div>
+      </div>
+
+      <div class="app-content" id="screen-body">
+        <!-- Injected via JS -->
+      </div>
+
+      <div class="nav-bar" id="screen-nav">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+
+    <!-- Specification Notes Panel -->
+    <div class="spec-panel" id="spec-notes">
+      <!-- Injected via JS -->
+    </div>
+  </div>
+
+  <script>
+    const screens = {
+      provider: {
+        title: "Cohort: Citrus Farm 2026",
+        body: `
+          <div class="card">
+            <div class="card-title">Active Cohort Overview</div>
+            <div class="stat-row"><span class="stat-label">Programme:</span><span class="stat-val">Plant Production NQF 4</span></div>
+            <div class="stat-row"><span class="stat-label">Capacity:</span><span class="stat-val">5 / 6 Enrolled</span></div>
+            <div class="stat-row"><span class="stat-label">Milestone State:</span><span class="badge badge-amber">Assessor Review</span></div>
+            <div class="stat-row"><span class="stat-label">Province:</span><span class="stat-val">Limpopo</span></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Daily Attendance Register</div>
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">Lesson 4: Irrigation Systems (13 Nov 2026, 09:00 SAST)</p>
+            <div class="stat-row"><span>Nomsa Dlamini (ID ...5082)</span><span class="badge badge-green">Present</span></div>
+            <div class="stat-row"><span>Lerato Khumalo (ID ...5089)</span><span class="badge badge-green">Present</span></div>
+            <div class="stat-row"><span>Thabo Sithole (ID ...5084)</span><span class="badge badge-amber">Excused</span></div>
+            <button class="btn btn-secondary" onclick="alert('Attendance saved locally! Queued in SQLite for sync.')">Mark Attendance</button>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Learner Evidence Packs</div>
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">Individual portfolios ready for Assessor submission</p>
+            <div class="stat-row"><span>Nomsa Dlamini</span><span class="badge badge-green">4 / 4 Docs Ready</span></div>
+            <div class="stat-row"><span>Lerato Khumalo</span><span class="badge badge-amber">3 / 4 Docs (Missing ID)</span></div>
+            <button class="btn" onclick="alert('Submitted Nomsa Dlamini pack to Assessor Sibusiso.')">Submit Pack to Assessor</button>
+          </div>
+        `,
+        nav: `
+          <div class="nav-item active"><span class="nav-icon">📊</span>Dashboard</div>
+          <div class="nav-item"><span class="nav-icon">👥</span>Learners</div>
+          <div class="nav-item"><span class="nav-icon">📅</span>Attendance</div>
+          <div class="nav-item"><span class="nav-icon">📁</span>Evidence</div>
+        `,
+        notes: `
+          <h3>Training Provider Design Tokens & Logic</h3>
+          <ul>
+            <li><strong>Primary Action:</strong> Enrol learners with 13-digit South African ID (client-side Luhn checksum check).</li>
+            <li><strong>Capacity Enforcement:</strong> Demo capacity is strictly 6 with 5 enrolled to reserve 1 slot for real-time testing.</li>
+            <li><strong>Offline Storage:</strong> Attendance rows use <span class="token-chip">clientOpId</span> in SQLite with deterministic conflict deduplication.</li>
+            <li><strong>Colors:</strong> Primary Forest Green <span class="token-chip">#164c38</span>, Sage Highlight <span class="token-chip">#e0eee6</span>.</li>
+          </ul>
+        `
+      },
+      assessor: {
+        title: "Assessor: Grade Cohort",
+        body: `
+          <div class="card">
+            <div class="card-title">Assigned Cohort: Citrus 2026</div>
+            <div class="stat-row"><span class="stat-label">Provider:</span><span class="stat-val">Thandi Training / Agri X</span></div>
+            <div class="stat-row"><span class="stat-label">Assessor:</span><span class="stat-val">Sibusiso (Grading)</span></div>
+            <div class="stat-row"><span class="stat-label">Moderator:</span><span class="stat-val">Lindiwe (Independent)</span></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Learner Grading Scorecard</div>
+            <div style="border-bottom:1px solid #f1f5f9; padding-bottom:8px; margin-bottom:8px;">
+              <div class="stat-row"><strong>Nomsa Dlamini</strong><span class="badge badge-green">Competent (86%)</span></div>
+              <p style="font-size:12px; color:var(--text-muted);">Practical pest management logbook verified.</p>
+            </div>
+            <div>
+              <div class="stat-row"><strong>Thabo Sithole</strong><span class="badge badge-amber">In Review (64%)</span></div>
+              <p style="font-size:12px; color:var(--text-muted);">Awaiting formative module 2 resubmission.</p>
+            </div>
+            <button class="btn" onclick="alert('Generated individual assessment report PDF and forwarded to QA.')">Approve & Forward to QA</button>
+          </div>
+        `,
+        nav: `
+          <div class="nav-item active"><span class="nav-icon">📝</span>Grading</div>
+          <div class="nav-item"><span class="nav-icon">🔍</span>Moderation</div>
+          <div class="nav-item"><span class="nav-icon">📑</span>Reports</div>
+          <div class="nav-item"><span class="nav-icon">👤</span>Profile</div>
+        `,
+        notes: `
+          <h3>Assessor Screen Specs</h3>
+          <ul>
+            <li><strong>Grading Matrix:</strong> Per-learner reports are generated independently upon submission.</li>
+            <li><strong>Role Isolation:</strong> Sibusiso can grade but cannot independently moderate the same cohort. Lindiwe performs independent moderation sign-off.</li>
+            <li><strong>Signed Evidence:</strong> Passing learners require signed certificate declarations before QA handoff.</li>
+          </ul>
+        `
+      },
+      qa: {
+        title: "QA: Milestone Verification",
+        body: `
+          <div class="card">
+            <div class="card-title">Cohort Audit: Citrus Farm 2026</div>
+            <div class="stat-row"><span class="stat-label">Attendance Threshold:</span><span class="badge badge-green">94% (Pass >80%)</span></div>
+            <div class="stat-row"><span class="stat-label">Learner Packs:</span><span class="stat-val">5 / 5 Complete</span></div>
+            <div class="stat-row"><span class="stat-label">Moderation Slot:</span><span class="badge badge-green">Signed by Lindiwe</span></div>
+            <div class="stat-row"><span class="stat-label">Open Findings:</span><span class="badge badge-green">0 Resolved</span></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Audit Actions</div>
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">All condition checks verified. Ready to unlock certification status.</p>
+            <button class="btn" style="background:#16a34a;" onclick="alert('Milestone UNLOCKED! Certification records released to passing learners.')">Unlock Milestone Status</button>
+            <button class="btn btn-secondary" style="color:#dc2626; border-color:#dc2626;" onclick="prompt('Enter mandatory non-blank audit correction reason:','ID document blurred; please re-upload.')">Request Correction / Re-upload</button>
+          </div>
+        `,
+        nav: `
+          <div class="nav-item active"><span class="nav-icon">🛡</span>Audits</div>
+          <div class="nav-item"><span class="nav-icon">📋</span>Checklists</div>
+          <div class="nav-item"><span class="nav-icon">⚠️</span>Findings</div>
+          <div class="nav-item"><span class="nav-icon">🔒</span>Security</div>
+        `,
+        notes: `
+          <h3>Quality Assurance (QA) Specs</h3>
+          <ul>
+            <li><strong>Non-payment Milestone:</strong> Milestones represent audited status only. No financial transactions move.</li>
+            <li><strong>Correction Enforcement:</strong> Request Re-upload requires a non-blank audit message and can reopen unlocked milestones if discrepancies arise.</li>
+            <li><strong>Audit Logging:</strong> All unlocks and findings write immutable append-only records to PostgreSQL triggers.</li>
+          </ul>
+        `
+      },
+      admin: {
+        title: "Admin: Security & Approval",
+        body: `
+          <div class="card">
+            <div class="card-title">Staff Applications Pending Approval</div>
+            <div style="border-bottom:1px solid #f1f5f9; padding-bottom:8px; margin-bottom:8px;">
+              <div class="stat-row"><strong>AgriTraining Cape (Provider)</strong><span class="badge badge-amber">PENDING</span></div>
+              <p style="font-size:12px; color:var(--text-muted);">Accreditation: AgriSETA-2026-991 | Expiry: 2028-12-31</p>
+              <button class="btn" style="padding:6px; font-size:11px;" onclick="alert('Provider approved! Welcome email queued in outbox.')">Approve Provider</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Mandatory Administrator MFA</div>
+            <div class="stat-row"><span class="stat-label">TOTP Setup Key:</span><span class="token-chip">JBSWY3DPEHPK3PXP</span></div>
+            <div class="stat-row"><span class="stat-label">Recovery Codes:</span><span class="stat-val">8 Remaining</span></div>
+            <div class="stat-row"><span class="stat-label">Two-Admin Rule:</span><span class="badge badge-blue">Enforced</span></div>
+          </div>
+        `,
+        nav: `
+          <div class="nav-item active"><span class="nav-icon">👥</span>Pending</div>
+          <div class="nav-item"><span class="nav-icon">🏛</span>Accreditation</div>
+          <div class="nav-item"><span class="nav-icon">⚙</span>System</div>
+          <div class="nav-item"><span class="nav-icon">🔐</span>Audit Logs</div>
+        `,
+        notes: `
+          <h3>Admin & Governance Specs</h3>
+          <ul>
+            <li><strong>Approval Gate:</strong> Public registrants remain in <span class="token-chip">PENDING</span> without token access until Admin approves.</li>
+            <li><strong>Mandatory MFA:</strong> Single-use 10-minute setup challenge enforced before issuing admin session.</li>
+            <li><strong>Two-Admin Approval:</strong> Sensitive governance operations require secondary administrator co-sign off.</li>
+          </ul>
+        `
+      },
+      learner: {
+        title: "Learner: Nomsa Dlamini",
+        body: `
+          <div class="card">
+            <div class="card-title">My Programme</div>
+            <div class="stat-row"><span class="stat-label">Course:</span><span class="stat-val">Plant Production NQF 4</span></div>
+            <div class="stat-row"><span class="stat-label">Provider:</span><span class="stat-val">Thandi Training</span></div>
+            <div class="stat-row"><span class="stat-label">Attendance:</span><span class="badge badge-green">95% (19/20)</span></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Upcoming Schedule (SAST)</div>
+            <div class="stat-row"><span>Module 5: Soil Analysis</span><span class="stat-val">15 Nov, 08:30</span></div>
+            <div class="stat-row"><span>Module 6: Harvesting</span><span class="stat-val">18 Nov, 09:00</span></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">My Digital Certificate</div>
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">QA Verified & Moderated Record</p>
+            <div class="stat-row"><span class="stat-label">Status:</span><span class="badge badge-green">VERIFIED</span></div>
+            <div class="stat-row"><span class="stat-label">Issue Date:</span><span class="stat-val">12 Nov 2026</span></div>
+            <button class="btn btn-secondary" onclick="alert('Viewing verified personal certificate record.')">View Certificate Record</button>
+          </div>
+        `,
+        nav: `
+          <div class="nav-item active"><span class="nav-icon">📖</span>Courses</div>
+          <div class="nav-item"><span class="nav-icon">📅</span>Schedule</div>
+          <div class="nav-item"><span class="nav-icon">📑</span>Documents</div>
+          <div class="nav-item"><span class="nav-icon">🎓</span>Certificates</div>
+        `,
+        notes: `
+          <h3>Learner Portal Privacy & Boundaries</h3>
+          <ul>
+            <li><strong>Strict Privacy:</strong> Learners can ONLY see their own courses, attendance, and outcomes. Shared cohort evidence bundles are never exposed.</li>
+            <li><strong>Document Upload:</strong> Learners can upload their own certified ID copy and consent agreements directly.</li>
+            <li><strong>Verification Records:</strong> Certificate views are personal verification records, preventing tampering with cohort master evidence.</li>
+          </ul>
+        `
+      }
+    };
+
+    function setRole(role) {
+      document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      const data = screens[role];
+      document.getElementById('screen-title').innerText = data.title;
+      document.getElementById('screen-body').innerHTML = data.body;
+      document.getElementById('screen-nav').innerHTML = data.nav;
+      document.getElementById('spec-notes').innerHTML = data.notes;
+    }
+
+    setRole('provider');
+  </script>
+</body>
+</html>

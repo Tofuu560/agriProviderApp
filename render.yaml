@@ -1,52 +1,17 @@
+# Uncommitted deployment preparation. Configure secrets before creating services.
 services:
   - type: web
     name: agriprovider-api
-    runtime: node
-    buildCommand: corepack enable && corepack prepare pnpm@11.25.0 --activate && pnpm install --frozen-lockfile && pnpm db:generate
+    runtime: docker
+    region: frankfurt
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: false
     preDeployCommand: pnpm db:migrate
-    startCommand: pnpm --filter @agri/api start
-    healthCheckPath: /healthz
-    autoDeploy: true
+    healthCheckPath: /readyz
     envVars:
-      - fromGroup: agriprovider-secrets
-      - key: NODE_ENV
-        value: production
-      - key: INLINE_WORKER
-        value: "false"
-  - type: web
-    name: agriprovider-web
-    runtime: static
-    buildCommand: corepack enable && corepack prepare pnpm@11.25.0 --activate && pnpm install --frozen-lockfile && pnpm build:web
-    staticPublishPath: apps/mobile/dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    envVars:
-      - key: EXPO_PUBLIC_API_URL
-        sync: false
-  - type: worker
-    name: agriprovider-worker
-    runtime: node
-    buildCommand: corepack enable && corepack prepare pnpm@11.25.0 --activate && pnpm install --frozen-lockfile && pnpm db:generate
-    startCommand: pnpm --filter @agri/api worker
-    envVars:
-      - fromGroup: agriprovider-secrets
-      - key: NODE_ENV
-        value: production
-  - type: cron
-    name: agriprovider-housekeeping
-    runtime: node
-    schedule: "0 * * * *"
-    buildCommand: corepack enable && corepack prepare pnpm@11.25.0 --activate && pnpm install --frozen-lockfile && pnpm db:generate
-    startCommand: pnpm --filter @agri/api housekeeping
-    envVars:
-      - fromGroup: agriprovider-secrets
-      - key: NODE_ENV
-        value: production
-envVarGroups:
-  - name: agriprovider-secrets
-    envVars:
+      - fromGroup: agriprovider-defaults
       - key: DATABASE_URL
         sync: false
       - key: DIRECT_URL
@@ -59,27 +24,187 @@ envVarGroups:
         sync: false
       - key: TOKEN_KEY
         sync: false
-      - key: STORAGE_MODE
-        value: s3
       - key: S3_ENDPOINT
         sync: false
       - key: S3_BUCKET
         sync: false
-      - key: S3_REGION
-        value: auto
       - key: S3_ACCESS_KEY
         sync: false
       - key: S3_SECRET_KEY
         sync: false
-      - key: MAIL_MODE
-        value: smtp
       - key: SMTP_URL
         sync: false
       - key: MAIL_FROM
         sync: false
+  - type: worker
+    name: agriprovider-worker
+    runtime: docker
+    region: frankfurt
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: false
+    dockerCommand: pnpm --filter @agri/api worker
+    envVars:
+      - fromGroup: agriprovider-defaults
+      - key: DATABASE_URL
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: DATABASE_URL
+      - key: DIRECT_URL
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: DIRECT_URL
+      - key: APP_URL
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: APP_URL
+      - key: CORS_ORIGINS
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: CORS_ORIGINS
+      - key: ENCRYPTION_KEY
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: ENCRYPTION_KEY
+      - key: TOKEN_KEY
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: TOKEN_KEY
+      - key: S3_ENDPOINT
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: S3_ENDPOINT
+      - key: S3_BUCKET
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: S3_BUCKET
+      - key: S3_ACCESS_KEY
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: S3_ACCESS_KEY
+      - key: S3_SECRET_KEY
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: S3_SECRET_KEY
+      - key: SMTP_URL
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: SMTP_URL
+      - key: MAIL_FROM
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: MAIL_FROM
+  - type: cron
+    name: agriprovider-housekeeping
+    runtime: docker
+    region: frankfurt
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: false
+    schedule: "0 * * * *"
+    dockerCommand: pnpm --filter @agri/api housekeeping
+    envVars:
+      - fromGroup: agriprovider-defaults
+      - key: DATABASE_URL
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: DATABASE_URL
+      - key: DIRECT_URL
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: DIRECT_URL
+      - key: APP_URL
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: APP_URL
+      - key: CORS_ORIGINS
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: CORS_ORIGINS
+      - key: ENCRYPTION_KEY
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: ENCRYPTION_KEY
+      - key: TOKEN_KEY
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: TOKEN_KEY
+      - key: S3_ENDPOINT
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: S3_ENDPOINT
+      - key: S3_BUCKET
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: S3_BUCKET
+      - key: S3_ACCESS_KEY
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: S3_ACCESS_KEY
+      - key: S3_SECRET_KEY
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: S3_SECRET_KEY
+      - key: SMTP_URL
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: SMTP_URL
+      - key: MAIL_FROM
+        fromService:
+          type: web
+          name: agriprovider-api
+          envVarKey: MAIL_FROM
+  - type: web
+    name: agriprovider-web
+    runtime: static
+    branch: main
+    autoDeploy: false
+    buildCommand: corepack enable && corepack prepare pnpm@11.25.0 --activate && pnpm install --frozen-lockfile && pnpm build:web
+    staticPublishPath: apps/mobile/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: EXPO_PUBLIC_API_URL
+        sync: false
+envVarGroups:
+  - name: agriprovider-defaults
+    envVars:
+      - key: NODE_ENV
+        value: "production"
+      - key: INLINE_WORKER
+        value: "false"
+      - key: STORAGE_MODE
+        value: "s3"
+      - key: S3_REGION
+        value: "auto"
+      - key: MAIL_MODE
+        value: "smtp"
       - key: CLAMSCAN_PATH
-        sync: false
-      - key: PASSPORT_URL
-        sync: false
-      - key: PASSPORT_KEY
-        sync: false
+        value: "/usr/bin/clamscan"

@@ -1,1 +1,20 @@
-{"build":{"development":{"developmentClient":true,"distribution":"internal"},"preview":{"distribution":"internal","android":{"buildType":"apk"}},"production":{"autoIncrement":true}}}
+{
+  "cli": { "requireCommit": false, "appVersionSource": "local" },
+  "build": {
+    "development": {
+      "pnpm": "11.25.0",
+      "developmentClient": true,
+      "distribution": "internal",
+      "environment": "development",
+      "android": { "buildType": "apk" }
+    },
+    "preview": {
+      "pnpm": "11.25.0",
+      "distribution": "internal",
+      "environment": "preview",
+      "android": { "buildType": "apk" }
+    },
+    "mvp1": { "extends": "preview" },
+    "production": { "pnpm": "11.25.0", "autoIncrement": true, "environment": "production" }
+  }
+}

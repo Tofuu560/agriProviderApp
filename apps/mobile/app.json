@@ -11,7 +11,10 @@
       "bundleIdentifier": "za.co.agriprovider.app"
     },
     "android": {
-      "package": "za.co.agriprovider.app"
+      "package": "za.co.agriprovider.app",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -40,6 +43,17 @@
     ],
     "experiments": {
       "typedRoutes": false
-    }
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "57112ea8-3606-4522-be74-9b809d0744d4"
+      }
+    },
+    "owner": "agriprovider"
   }
 }
