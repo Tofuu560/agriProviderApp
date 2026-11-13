@@ -35,12 +35,6 @@
       "expo-font",
       "expo-background-task",
       [
-        "expo-notifications",
-        {
-          "mode": "production"
-        }
-      ],
-      [
         "expo-image-picker",
         {
           "cameraPermission": "Allow AgriProvider to photograph training evidence.",

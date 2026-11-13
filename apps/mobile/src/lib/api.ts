@@ -16,7 +16,12 @@ export async function request<T=any>(path:string,body?:unknown,method?:string,re
  if(response.status===401&&retry&&refreshHandler&&!path.startsWith('/auth/')){
   try{if(!refreshing)refreshing=refreshHandler().finally(()=>{refreshing=null;});await refreshing;return request(path,body,method,false,owner);}catch{throw new ApiError('SESSION_EXPIRED','Please sign in again. Your saved work is kept safely.',401);}
  }
- const json=await response.json();
+ let json:any;
+ try{json=await response.json();}
+ catch{
+  if(!response.ok)throw new ApiError('HTTP_'+response.status,'Server response: '+response.statusText+' ('+response.status+').',response.status);
+  json={};
+ }
  if(!response.ok)throw new ApiError(json.code??'ERROR',json.message??'Please try again.',response.status,json.fields);
  return json;
 }
