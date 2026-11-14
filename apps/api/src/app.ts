@@ -6,7 +6,26 @@ import rateLimit from '@fastify/rate-limit';
 import multipart from '@fastify/multipart';
 import { z,ZodError } from 'zod';
 import { timingSafeEqual } from 'node:crypto';
+import { readFile, stat } from 'node:fs/promises';
+import { join, extname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { env } from './config.js';
+
+const webDist = fileURLToPath(new URL('../../mobile/dist', import.meta.url));
+const mimeTypes: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.ttf': 'font/ttf',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2'
+};
 import { db,AppError,fail,hash,mutate,audit,system } from './core.js';
 import { accountRoutes } from './account.js';
 import { authRoutes } from './auth.js';
@@ -60,6 +79,24 @@ export async function createApp(){
   // Integration actor is a fixed UUID namespace for idempotency; no human session is accepted.
   return mutate({...system,id:'00000000-0000-4000-8000-000000000001'},v.clientOpId,v,async tx=>{if(!await tx.provider.findUnique({where:{id:v.providerId}}))fail('NOT_FOUND','Provider not found.',404);const {clientOpId,...data}=v;const f=await tx.finding.create({data});await audit(tx,system,'FIELD_FINDING_RECEIVED',f.id,{},clientOpId);return f;});
  });
- app.setNotFoundHandler((_req,reply)=>reply.status(404).send({code:'NOT_FOUND',message:'Endpoint not found.',fields:[]}));
+ app.setNotFoundHandler(async (req, reply) => {
+  if (req.url.startsWith('/api/') || req.url.startsWith('/files/') || req.url === '/healthz' || req.url === '/readyz') {
+    return reply.status(404).send({code:'NOT_FOUND',message:'Endpoint not found.',fields:[]});
+  }
+  try {
+    const cleanPath = req.url.split('?')[0];
+    const filePath = join(webDist, cleanPath === '/' ? 'index.html' : cleanPath);
+    const s = await stat(filePath).catch(() => null);
+    if (s && s.isFile()) {
+      const ext = extname(filePath).toLowerCase();
+      const type = mimeTypes[ext] || 'application/octet-stream';
+      return reply.type(type).send(await readFile(filePath));
+    }
+    const indexPath = join(webDist, 'index.html');
+    return reply.type('text/html; charset=utf-8').send(await readFile(indexPath));
+  } catch {
+    return reply.status(404).send({code:'NOT_FOUND',message:'Endpoint not found.',fields:[]});
+  }
+ });
  return app;
 }

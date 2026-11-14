@@ -33,7 +33,6 @@
       "expo-sqlite",
       "expo-document-picker",
       "expo-font",
-      "expo-background-task",
       [
         "expo-image-picker",
         {
